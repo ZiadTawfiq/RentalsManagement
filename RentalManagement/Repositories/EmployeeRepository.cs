@@ -1,4 +1,5 @@
 ﻿using RentalManagement.DTOs;
+using RentalManagement.Entities;
 
 namespace RentalManagement.Repositories
 {
@@ -7,6 +8,7 @@ namespace RentalManagement.Repositories
         public Task<ApiResponse<ReturnedEmployeeDto>> AddEmployee(Create_UpdateEmployeeDto dto)
         {
             throw new NotImplementedException();
+
         }
 
         public Task<ApiResponse<string>> DeleteEmployee(string id)

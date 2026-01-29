@@ -1,15 +1,13 @@
-﻿using RentalManagement.DTOs;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
 namespace RentalManagement.Repositories
 {
-    public class EmployeeRepository(AppDbContext _context) : IEmployeeRepository
+    public class EmployeeRepository(AppDbContext _context ) : IEmployeeRepository
     {
-        public Task<ApiResponse<ReturnedEmployeeDto>> AddEmployee(Create_UpdateEmployeeDto dto)
-        {
-            throw new NotImplementedException();
-
-        }
+      
 
         public Task<ApiResponse<string>> DeleteEmployee(string id)
         {
@@ -26,7 +24,7 @@ namespace RentalManagement.Repositories
             throw new NotImplementedException();
         }
 
-        public Task<ApiResponse<ReturnedEmployeeDto>> UpdateEmployee(string id, Create_UpdateEmployeeDto dto)
+        public Task<ApiResponse<ReturnedEmployeeDto>> UpdateEmployee(string id, SignupDto dto)
         {
             throw new NotImplementedException();
         }

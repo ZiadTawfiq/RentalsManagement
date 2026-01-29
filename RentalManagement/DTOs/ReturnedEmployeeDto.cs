@@ -2,8 +2,8 @@
 {
     public class ReturnedEmployeeDto
     {
-        public string Name { get; set; }
+        public string UserName { get; set; }
         public int PropertyId { get; set; }
-        public double ? TotalCommission { get; set; }
+        public double? CachedTotalCommission { get; set; }
     }
 }

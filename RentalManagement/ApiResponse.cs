@@ -4,6 +4,7 @@
     {
         public bool IsSuccess { get; set;  }
         public T Data { get; set; }
+        public string Message { get; set; }
 
         public static ApiResponse<T> Success(T data)
         {
@@ -13,12 +14,13 @@
                 Data = data 
             };
         }
-        public static ApiResponse<T> Failure()
+        public static ApiResponse<T> Failure(string message)
         {
             return new ApiResponse<T>
             {
                 IsSuccess = false,
-                Data = default
+                Data = default,
+                Message = message
             };
         }
     }

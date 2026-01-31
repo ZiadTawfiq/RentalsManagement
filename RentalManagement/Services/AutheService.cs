@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 using RentalManagement.JwtToken;
@@ -8,6 +9,28 @@ namespace RentalManagement.Services
 {
     public class AutheService(UserManager<ApplicationUser> _userManager , RoleManager<IdentityRole>_roleManager,IMapper _mapper , IJwtService _jwtService , AppDbContext _context) : IAuthService
     {
+        public async Task<ApiResponse<string>> ChangePassword(ChangePasswordDto dto)
+        {
+            var user = await _userManager.Users.Include(_=>_.RefreshTokens)
+                .FirstOrDefaultAsync(_ => _.UserName == dto.UserName);
+            if (user == null)
+            {
+                return ApiResponse<string>.Failure("Invalid UserName!");
+            }
+            var result = _userManager.ChangePasswordAsync(user, dto.OldPassword, dto.NewPassword);
+            if (!result.IsCompletedSuccessfully)
+            {
+                return ApiResponse<string>.Failure("Error in Changing Password");
+            }
+            foreach (var token in user.RefreshTokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedOn = DateTime.UtcNow;
+               
+            }
+            return ApiResponse<string>.Success("Password changed successfully"); 
+        }
+
         public async Task<ApiResponse<AuthResponseDto>> Login(LoginDto dto)
         {
             var emp = await _userManager.FindByNameAsync(dto.UserName);

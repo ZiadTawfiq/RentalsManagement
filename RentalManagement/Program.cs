@@ -1,9 +1,10 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentalManagement.Entities;
 using RentalManagement.JwtToken;
+using RentalManagement.Repositories;
 using RentalManagement.Services;
-using AutoMapper;
 
 namespace RentalManagement
 {
@@ -31,6 +32,21 @@ namespace RentalManagement
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IAuthService, AutheService>();
 
+            /* ===================== Repositories ===================== */
+
+            builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
+            builder.Services.AddScoped<IPropertyRepository,PropertyRepository>();
+            builder.Services.AddScoped<IUnitRepository, UnitRepository>();
+
+            /* ===================== Services ===================== */
+
+            builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+            builder.Services.AddScoped<IOwnerService, OwnerService>();
+            builder.Services.AddScoped<IPropertyService, PropertyService>();
+            builder.Services.AddScoped<IUnitService, UnitService>();
+
+            /* ===================== Mapping ===================== */
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();

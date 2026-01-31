@@ -1,54 +1,66 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Storage.Json;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
+using RentalManagement.JwtToken;
 
 namespace RentalManagement.Services
 {
-    public class AutheService(UserManager<ApplicationUser> _userManager , RoleManager<IdentityRole>_roleManager,IMapper _mapper) : IAuthService
+    public class AutheService(UserManager<ApplicationUser> _userManager , RoleManager<IdentityRole>_roleManager,IMapper _mapper , IJwtService _jwtService , AppDbContext _context) : IAuthService
     {
-        public async Task<ApiResponse<string>> Login(LoginDto dto)
+        public async Task<ApiResponse<AuthResponseDto>> Login(LoginDto dto)
         {
-            var emp = await _userManager.FindByEmailAsync(dto.Email);
+            var emp = await _userManager.FindByNameAsync(dto.UserName);
             if (emp == null)
             {
-                return ApiResponse<string>.Failure("Email is not Found!");
+                return ApiResponse<AuthResponseDto>.Failure("Invalid username or password!");
             }
             var empPassword = await _userManager.CheckPasswordAsync(emp, dto.Password);
             if (!empPassword)
             {
-                return ApiResponse<string>.Failure("Password not correct!");
+                return ApiResponse<AuthResponseDto>.Failure("Invalid username or password!");
             }
-            
-            // Create JWT tokens later......
+            var roles = await _userManager.GetRolesAsync(emp);
+            var accessToken = _jwtService.GenerateAccessToken(emp, roles);
+            var refreshTokenEntity = _jwtService.GenerateRefreshToken(out string refreshToken);
 
-            return ApiResponse<string>.Success("Login successfully");
+            refreshTokenEntity.UserId = emp.Id;
+
+
+            _context.RefreshTokens.Add(refreshTokenEntity);
+            await _context.SaveChangesAsync(); 
+
+
+            return ApiResponse<AuthResponseDto>.Success(new AuthResponseDto
+            {
+                AccessToken = accessToken, 
+                RefreshToken = refreshToken
+
+               
+            });
             
            
         }
 
-        public async Task<ApiResponse<ReturnedEmployeeDto>> SignUp(SignupDto dto) // Confirm Password
+        public async Task<ApiResponse<ReturnedEmployeeDto>> SignUp(SignupDto dto) 
         {
-            var userByEmail = await _userManager.FindByEmailAsync(dto.Email);
-            if (userByEmail != null)
-                return ApiResponse<ReturnedEmployeeDto>.Failure("Email is already found!");
+          
 
             var userByName = await _userManager.FindByNameAsync(dto.UserName);
             if (userByName != null)
                 return ApiResponse<ReturnedEmployeeDto>.Failure("UserName is already found!");
+            if (dto.Password != dto.ConfirmPassword)
+            {
+                return ApiResponse<ReturnedEmployeeDto>.Failure("Passwords mismatch!");
+            }
             var Emp = new ApplicationUser
             {
                 UserName = dto.UserName,
-                Email = dto.Email,
                 PropertyId = dto.PropertyId,
                 CachedTotalCommission = 0
 
             };
-            if (dto.Password != dto.ConfirmPassword)
-            {
-                return ApiResponse<ReturnedEmployeeDto>.Failure("Passwords mismatch!"); 
-            }
+          
             var result = await _userManager.CreateAsync(Emp, dto.Password);
 
             if (!result.Succeeded)
@@ -60,12 +72,19 @@ namespace RentalManagement.Services
                     )
                     );
             }
-            if (!await _roleManager.RoleExistsAsync(dto.Role))
+            foreach (string role in dto.Roles)
             {
-                await _roleManager.CreateAsync(new IdentityRole(dto.Role));
-            }
-            var userRole = await _userManager.AddToRoleAsync(Emp, dto.Role);
+                if (!await _roleManager.RoleExistsAsync(role))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(role));
+                }
+                var userRole = await _userManager.AddToRoleAsync(Emp, role);
 
+                if (!userRole.Succeeded)
+                {
+                    return ApiResponse<ReturnedEmployeeDto>.Failure("Error in Assigning role!");
+                }
+            }
             var empDto = _mapper.Map<ReturnedEmployeeDto>(Emp);
 
             return ApiResponse<ReturnedEmployeeDto>.Success(empDto); 

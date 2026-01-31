@@ -70,5 +70,6 @@ namespace RentalManagement
         public DbSet<Property> Properties { get; set; }
         public DbSet<Unit> Units { get; set; }
         public DbSet<Owner> Owners { get; set; }
+        public DbSet<RentalManagement.JwtToken.RefreshToken> RefreshTokens { get; set; }
     }
 }

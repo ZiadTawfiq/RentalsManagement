@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentalManagement.Entities;
+using RentalManagement.JwtToken;
+using RentalManagement.Services;
+using AutoMapper;
 
 namespace RentalManagement
 {
@@ -24,6 +27,15 @@ namespace RentalManagement
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
+            builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.AddScoped<IAuthService, AutheService>();
+
+            builder.Services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<MappingProfile>();
+            });
+
 
             var app = builder.Build();
 

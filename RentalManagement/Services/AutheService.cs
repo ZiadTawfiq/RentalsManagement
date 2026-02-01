@@ -1,12 +1,16 @@
 ﻿using AutoMapper;
+using Duende.IdentityServer.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 using RentalManagement.JwtToken;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace RentalManagement.Services
 {
-    public class AutheService(UserManager<ApplicationUser> _userManager , RoleManager<IdentityRole>_roleManager,IMapper _mapper , IJwtService _jwtService , AppDbContext _context) : IAuthService
+    public class AutheService(UserManager<ApplicationUser> _userManager, RoleManager<IdentityRole> _roleManager, IMapper _mapper, IJwtService _jwtService, AppDbContext _context) : IAuthService
     {
         public async Task<ApiResponse<AuthResponseDto>> Login(LoginDto dto)
         {
@@ -16,6 +20,7 @@ namespace RentalManagement.Services
                 return ApiResponse<AuthResponseDto>.Failure("Invalid username or password!");
             }
             var empPassword = await _userManager.CheckPasswordAsync(emp, dto.Password);
+            
             if (!empPassword)
             {
                 return ApiResponse<AuthResponseDto>.Failure("Invalid username or password!");
@@ -40,6 +45,48 @@ namespace RentalManagement.Services
             });
             
            
+        }
+
+        public async Task<ApiResponse<AuthResponseDto>> RefreshToken(string OldrefreshToken)
+        {
+            var hashedToken = Convert.ToBase64String(
+              SHA256.HashData(Encoding.UTF8.GetBytes(OldrefreshToken)));
+
+            var storedToken = await _context.RefreshTokens
+                .Include(_ => _.User)
+                .FirstOrDefaultAsync(_ => _.Token == OldrefreshToken);
+
+            if (storedToken == null)
+                return ApiResponse<AuthResponseDto>.Failure("Invalid refresh token");
+
+            if (storedToken.IsRevoked)
+                return ApiResponse<AuthResponseDto>.Failure("Token revoked");
+
+            if (storedToken.ExpiresOn < DateTime.UtcNow)
+                return ApiResponse<AuthResponseDto>.Failure("Token expired");
+
+            storedToken.IsRevoked = true;
+            storedToken.RevokedOn = DateTime.UtcNow;
+
+            var roles = await _userManager.GetRolesAsync(storedToken.User);
+
+            var newAccessToken =
+                _jwtService.GenerateAccessToken(storedToken.User, roles);
+
+            var newRefreshTokenEntity =
+                _jwtService.GenerateRefreshToken(out string newRefreshToken);
+
+            newRefreshTokenEntity.UserId = storedToken.UserId;
+
+            _context.RefreshTokens.Add(newRefreshTokenEntity);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<AuthResponseDto>.Success(new AuthResponseDto
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
+            });
+
         }
 
         public async Task<ApiResponse<ReturnedEmployeeDto>> SignUp(SignupDto dto) 

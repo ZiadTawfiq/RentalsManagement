@@ -36,7 +36,7 @@ namespace RentalManagement.JwtToken
 
                 issuer: _configuration["issuer"],
                 audience: _configuration["audience"],
-                expires: DateTime.Now.AddMinutes(15),
+                expires: DateTime.UtcNow.AddMinutes(15),
                 claims: claims,
                 signingCredentials: cred
 
@@ -59,7 +59,9 @@ namespace RentalManagement.JwtToken
             {
                 Token = Convert.ToBase64String(hashedToken),
                 ExpiresOn = DateTime.UtcNow.AddDays(30),
-                IsRevoked = false
+                IsRevoked = false,
+                CreatedOn = DateTime.UtcNow,
+                
             };
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using RentalManagement.JwtToken;
 
 namespace RentalManagement.Entities
 {
@@ -9,6 +10,8 @@ namespace RentalManagement.Entities
         public decimal? CachedTotalCommission { get; set; }
         public DateTime? CommissionLastUpdatedAt { get; set; }
         public ICollection<RentalSales> RentalSales { get; set; } = new List<RentalSales>(); 
+        public ICollection<RefreshToken>RefreshTokens { get; set; }
+
 
     }
 }

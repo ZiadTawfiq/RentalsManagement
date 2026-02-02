@@ -13,5 +13,40 @@ namespace RentalManagement.Controllers
         {
             return await authService.RefreshToken(dto.RefreshToken);
         }
+        [HttpPost("login")]
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody]LoginDto dto)
+        {
+            var result = await authService.Login(dto);
+            if (!result.IsSuccess)
+            {
+                return Unauthorized(result);
+            }
+            return Ok(result);
+            
+        }
+        [HttpPost("signup")]
+        public async Task<ActionResult<ApiResponse<ReturnedEmployeeDto>>>SignUp(SignupDto dto)
+        {
+            var result = await authService.SignUp(dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result); 
+                
+        }
+        [HttpPost("ChangePassword")]
+        public async Task<ActionResult<ApiResponse<string>>> ChangePassword(ChangePasswordDto dto)
+        {
+            var result = await authService.ChangePassword(dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result); 
+            }
+           
+            return Ok(result); 
+
+        }
+
     }
 }

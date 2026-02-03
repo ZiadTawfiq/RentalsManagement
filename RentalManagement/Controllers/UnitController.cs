@@ -19,6 +19,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _unitService.GetAllUnits();
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -26,6 +30,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _unitService.GetUnitById(id);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -33,6 +41,11 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Create(UnitDto dto)
         {
             var result = await _unitService.CreateUnit(dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
+
             return Ok(result);
         }
 
@@ -40,6 +53,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Update(int id, UnitDto dto)
         {
             var result = await _unitService.UpdateUnit(id, dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -47,6 +64,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _unitService.DeleteUnit(id);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
     }

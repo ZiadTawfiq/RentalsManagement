@@ -19,6 +19,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _ownerService.GetAllOwners();
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -26,6 +30,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _ownerService.GetOwnerById(id);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -33,6 +41,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Create(OwnerDto dto)
         {
             var result = await _ownerService.CreateOwner(dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -40,6 +52,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Update(int id, OwnerDto dto)
         {
             var result = await _ownerService.UpdateOwner(id, dto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
 
@@ -47,6 +63,10 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _ownerService.DeleteOwner(id);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
     }

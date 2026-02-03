@@ -16,14 +16,10 @@ namespace RentalManagement.JwtToken
         // ربط باليوزر
         public string UserId { get; set; }
         public ApplicationUser User { get; set; }
-<<<<<<< HEAD
 
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
         public DateTime RevokedOn { get; set; }
-=======
-        public DateTime RevokedOn { get; set; }
 
         
->>>>>>> f932c732ac02780f916491f809fd74fbb96520a8
     }
 }

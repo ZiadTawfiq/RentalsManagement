@@ -1,10 +1,12 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentalManagement.Entities;
 using RentalManagement.JwtToken;
 using RentalManagement.Repositories;
 using RentalManagement.Services;
+
 
 namespace RentalManagement
 {
@@ -19,7 +21,7 @@ namespace RentalManagement
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             
-            builder.Services.AddOpenApi();
+            //builder.Services.AddOpenApi();
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -47,27 +49,29 @@ namespace RentalManagement
             builder.Services.AddScoped<IUnitService, UnitService>();
 
             /* ===================== Mapping ===================== */
-            builder.Services.AddAutoMapper(cfg =>
-            {
-                cfg.AddProfile<MappingProfile>();
-            });
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
 
             var app = builder.Build();
 
-            
+           
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI();
+
+
             }
 
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
 
-
+            app.MapGet("/", () => Results.Redirect("/swagger"));
             app.MapControllers();
 
             app.Run();

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using RentalManagement.DTOs;
 using RentalManagement.Services;
 
@@ -30,7 +31,8 @@ namespace RentalManagement.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(PropertyDto dto)
+        [Route("Create")]
+        public async Task<IActionResult> Create([FromBody]PropertyDto dto)
         {
             var result = await _propertyService.CreateProperty(dto);
             return Ok(result);

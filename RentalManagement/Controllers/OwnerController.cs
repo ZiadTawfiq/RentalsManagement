@@ -38,7 +38,8 @@ namespace RentalManagement.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(OwnerDto dto)
+        [Route("Create")]
+        public async Task<IActionResult> Create([FromBody]OwnerDto dto)
         {
             var result = await _ownerService.CreateOwner(dto);
             if (!result.IsSuccess)

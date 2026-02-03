@@ -1,4 +1,6 @@
 using AutoMapper;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -50,9 +52,14 @@ namespace RentalManagement
 
             /* ===================== Mapping ===================== */
             builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+            /* ===================== Swagger ===================== */
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            /* ===================== FluentValidation ===================== */
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
             var app = builder.Build();
 

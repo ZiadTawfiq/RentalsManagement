@@ -35,6 +35,11 @@ namespace RentalManagement.Repositories
 
         public async Task<ApiResponse<ReturnedPropertyDto>> CreateProperty(PropertyDto dto)
         {
+            var propertyExist = await _context.Properties.AsNoTracking().AnyAsync(_ =>_.Name == dto.Name);
+            if (propertyExist)
+            {
+                return ApiResponse<ReturnedPropertyDto>.Failure("Property is already found!");
+            }
             var property = _mapper.Map<Property>(dto);
             _context.Properties.Add(property);
             await _context.SaveChangesAsync();

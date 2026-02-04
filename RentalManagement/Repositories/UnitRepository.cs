@@ -43,6 +43,12 @@ namespace RentalManagement.Repositories
 
         public async Task<ApiResponse<ReturnedUnitDto>> CreateUnit(UnitDto dto)
         {
+            var unitExist = await _context.Units.AnyAsync(_ => _.Code == dto.Code);
+            if (unitExist)
+            {
+                return ApiResponse<ReturnedUnitDto>.Failure("Unit Code is already Exist!");
+
+            }
             var unit = _mapper.Map<Unit>(dto);
             _context.Units.Add(unit);
             await _context.SaveChangesAsync();

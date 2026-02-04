@@ -59,8 +59,8 @@ namespace RentalManagement
             builder.Services.AddSwaggerGen();
 
             /* ===================== FluentValidation ===================== */
-            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<OwnerDtoValidator>();
             var app = builder.Build();
 
            

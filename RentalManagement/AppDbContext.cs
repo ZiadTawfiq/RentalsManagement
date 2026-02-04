@@ -61,6 +61,18 @@ namespace RentalManagement
                 .WithOne(rs => rs.Rental)
                 .HasForeignKey<RentalSettlement>(rs => rs.RentalId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Unit>()
+                .HasIndex(_ => _.Code)
+                .IsUnique();
+
+            builder.Entity<Property>()
+                .HasIndex(_ => _.Name)
+                .IsUnique();
+
+            builder.Entity<Owner>()
+                .HasIndex(_ => _.PhoneNumber)
+                .IsUnique();
         }
 
         public DbSet<Rental> Rentals { get; set; }

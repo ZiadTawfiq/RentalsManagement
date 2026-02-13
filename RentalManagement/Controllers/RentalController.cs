@@ -95,7 +95,9 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> Filter([FromBody] RentalFilterDto dto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
+
+            if (userId == null)
+                return Unauthorized();
 
             if (User.IsInRole("SalesRep"))
              dto.SalesRepId = userId;

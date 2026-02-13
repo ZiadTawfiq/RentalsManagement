@@ -26,7 +26,6 @@ namespace RentalManagement
                 .ForMember(d => d.OwnerName, opt => opt.MapFrom(s => s.Owner.Name))
                 .ForMember(d => d.PropertyName, opt => opt.MapFrom(s => s.Property.Name));
 
-
         }
     }
 }

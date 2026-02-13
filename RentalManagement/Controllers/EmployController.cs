@@ -7,7 +7,7 @@ namespace RentalManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = "Admin")] // فعّلها لما تحب
+    [Authorize(Roles = "Admin")]
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
@@ -18,6 +18,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles ="Admin,Accountant")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _employeeService.GetAllEmployees();
@@ -29,6 +30,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles ="Admin,Accountant")]
         public async Task<IActionResult> GetById(string id)
         {
             var result = await _employeeService.GetEmployeeById(id);
@@ -40,6 +42,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(string id, UpdateEmployeeDto dto)
         {
             var result = await _employeeService.UpdateEmployee(id, dto);
@@ -51,6 +54,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             var result = await _employeeService.DeleteEmployee(id);
@@ -60,5 +64,6 @@ namespace RentalManagement.Controllers
             }
             return Ok(result);
         }
+
     }
 }

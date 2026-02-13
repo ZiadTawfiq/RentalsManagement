@@ -18,8 +18,10 @@ namespace RentalManagement.DTOs
 
         public string CustomerFullName { get; set; }
         public string CustomerPhoneNumber { get; set; }
+        public decimal TotalCommision { get; set; }
 
-        public List<CreateRentalSalesDto> Sales { get; set; }
+        public List<ReturnedRentalSalesDto> Sales { get; set; }
         public string? Notes { get; set; }
+
     }
 }

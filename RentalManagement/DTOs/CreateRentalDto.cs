@@ -13,6 +13,7 @@
         public decimal DayPriceOwner { get; set; }
 
         public decimal CustomerDeposit { get; set; }
+        public decimal OwnerDeposit { get; set;  }
         public decimal? SecurityDeposit { get; set; }
 
         public bool HasCampaignDiscount { get; set; }

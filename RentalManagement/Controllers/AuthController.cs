@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RentalManagement.DTOs;
 using RentalManagement.Services;
 
@@ -14,6 +15,7 @@ namespace RentalManagement.Controllers
             return await authService.RefreshToken(dto.RefreshToken);
         }
         [HttpPost("login")]
+        [Authorize]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody]LoginDto dto)
         {
             var result = await authService.Login(dto);
@@ -25,6 +27,7 @@ namespace RentalManagement.Controllers
             
         }
         [HttpPost("signup")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<ReturnedEmployeeDto>>>SignUp(SignupDto dto)
         {
             var result = await authService.SignUp(dto);
@@ -35,10 +38,12 @@ namespace RentalManagement.Controllers
             return Ok(result); 
                 
         }
-        [HttpPost("ChangePassword")]
-        public async Task<ActionResult<ApiResponse<string>>> ChangePassword(ChangePasswordDto dto)
+        [HttpPost("ResetPassword")]
+        [Authorize(Roles = "Admin")]
+
+        public async Task<ActionResult<ApiResponse<string>>> ResetPassword(ChangePasswordDto dto)
         {
-            var result = await authService.ChangePassword(dto);
+            var result = await authService.ResetPassword(dto);
             if (!result.IsSuccess)
             {
                 return BadRequest(result); 

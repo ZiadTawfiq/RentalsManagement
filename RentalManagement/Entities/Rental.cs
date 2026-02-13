@@ -4,10 +4,7 @@ public class Rental
 {
     public int Id { get; set; }
 
-    // Sales
-    public string SalesRepresentativeId { get; set; }
-    public ApplicationUser SalesRepresentative { get; set; }
-
+  
     // Dates
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }

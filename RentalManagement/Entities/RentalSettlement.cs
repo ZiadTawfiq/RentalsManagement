@@ -16,11 +16,12 @@
     public decimal OwnerRemaining { get; set; }
 
     // Company
-    public decimal CompanyRevenue { get; set; }
+    public decimal? CompanyRevenue { get; set; }
 
     // Sales
     public decimal? SalesCommission { get; set; }
 
     public DateTime CalculatedAt { get; set; }
+    public decimal?CampainMoney { get; set; }
 
 }

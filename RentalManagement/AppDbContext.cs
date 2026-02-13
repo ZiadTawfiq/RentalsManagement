@@ -73,6 +73,9 @@ namespace RentalManagement
             builder.Entity<Owner>()
                 .HasIndex(_ => _.PhoneNumber)
                 .IsUnique();
+            builder.Entity<ApplicationUser>()
+                .HasIndex(_ => _.UserName)
+                .IsUnique(); 
         }
 
         public DbSet<Rental> Rentals { get; set; }

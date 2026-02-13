@@ -32,6 +32,7 @@ namespace RentalManagement
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+            builder.Services.AddAuthorization(); 
 
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IAuthService, AutheService>();
@@ -42,6 +43,8 @@ namespace RentalManagement
             builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
             builder.Services.AddScoped<IPropertyRepository,PropertyRepository>();
             builder.Services.AddScoped<IUnitRepository, UnitRepository>();
+            builder.Services.AddScoped<IRentalRepository, RentalRepository>();
+
 
             /* ===================== Services ===================== */
 
@@ -49,6 +52,8 @@ namespace RentalManagement
             builder.Services.AddScoped<IOwnerService, OwnerService>();
             builder.Services.AddScoped<IPropertyService, PropertyService>();
             builder.Services.AddScoped<IUnitService, UnitService>();
+            builder.Services.AddScoped<IRentalService, RentalService>();
+            builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
             /* ===================== Mapping ===================== */
             builder.Services.AddAutoMapper(typeof(MappingProfile));

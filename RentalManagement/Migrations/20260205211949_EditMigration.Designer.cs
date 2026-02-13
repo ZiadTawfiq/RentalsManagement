@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RentalManagement;
 
@@ -11,9 +12,11 @@ using RentalManagement;
 namespace RentalManagement.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260205211949_EditMigration")]
+    partial class EditMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -459,9 +462,6 @@ namespace RentalManagement.Migrations
 
                     b.Property<DateTime>("CalculatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("CampainMoney")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("CompanyRevenue")
                         .HasColumnType("decimal(18,2)");

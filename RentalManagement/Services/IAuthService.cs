@@ -9,6 +9,6 @@ namespace RentalManagement.Services
         Task<ApiResponse<AuthResponseDto>> RefreshToken(string refreshToken);
 
 
-        Task<ApiResponse<string>> ChangePassword(ChangePasswordDto dto);
+        Task<ApiResponse<string>> ResetPassword(ChangePasswordDto dto);
     }
 }

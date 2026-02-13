@@ -16,7 +16,10 @@ public class SignupDtoValidator : AbstractValidator<SignupDto>
 
         RuleFor(x => x.Password)
             .NotEmpty()
-            .MinimumLength(6);
+            .MinimumLength(6)
+            .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$")
+            .WithMessage("Password must contain upper, lower case letters, a number, and a special character like @");
+
 
         RuleFor(x => x.ConfirmPassword)
             .Equal(x => x.Password)

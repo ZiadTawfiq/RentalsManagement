@@ -12,26 +12,39 @@ namespace RentalManagement.Services
 {
     public class AutheService(UserManager<ApplicationUser> _userManager, RoleManager<IdentityRole> _roleManager, IMapper _mapper, IJwtService _jwtService, AppDbContext _context) : IAuthService
     {
-        public async Task<ApiResponse<string>> ChangePassword(ChangePasswordDto dto)
+        public async Task<ApiResponse<string>> ResetPassword(ChangePasswordDto dto)
         {
-            var user = await _userManager.Users.Include(_=>_.RefreshTokens)
-                .FirstOrDefaultAsync(_ => _.UserName == dto.UserName);
+            var user = await _userManager.Users
+        .Include(u => u.RefreshTokens)
+        .FirstOrDefaultAsync(u => u.UserName == dto.UserName);
+
             if (user == null)
+                return ApiResponse<string>.Failure("User not found");
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var result = await _userManager.ResetPasswordAsync(
+                user,
+                resetToken,
+                dto.NewPassword
+            );
+
+            if (!result.Succeeded)
             {
-                return ApiResponse<string>.Failure("Invalid UserName!");
+                return ApiResponse<string>.Failure(
+                    string.Join(", ", result.Errors.Select(e => e.Description))
+                );
             }
-            var result = _userManager.ChangePasswordAsync(user, dto.OldPassword, dto.NewPassword);
-            if (!result.IsCompletedSuccessfully)
-            {
-                return ApiResponse<string>.Failure("Error in Changing Password");
-            }
+
             foreach (var token in user.RefreshTokens)
             {
                 token.IsRevoked = true;
                 token.RevokedOn = DateTime.UtcNow;
-               
             }
-            return ApiResponse<string>.Success("Password changed successfully"); 
+
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            return ApiResponse<string>.Success("Password reset successfully by admin");
         }
 
         public async Task<ApiResponse<AuthResponseDto>> Login(LoginDto dto)
@@ -71,8 +84,6 @@ namespace RentalManagement.Services
 
         public async Task<ApiResponse<AuthResponseDto>> RefreshToken(string OldrefreshToken)
         {
-            var hashedToken = Convert.ToBase64String(
-              SHA256.HashData(Encoding.UTF8.GetBytes(OldrefreshToken)));
 
             var storedToken = await _context.RefreshTokens
                 .Include(_ => _.User)

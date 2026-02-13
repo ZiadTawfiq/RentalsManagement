@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using PhoneNumbers;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
@@ -19,21 +20,16 @@ namespace RentalManagement.Repositories
         {
             if (string.IsNullOrWhiteSpace(phone))
                 return phone;
+            var util = PhoneNumberUtil.GetInstance();
 
-            phone = phone.Trim()
-                         .Replace(" ", "")
-                         .Replace("-", "")
-                         .Replace("(", "")
-                         .Replace(")", "")
-                         .Replace("_", "");
+            var mobileNumber = util.Parse(phone,null);
+            if (util.IsValidNumber(mobileNumber))
+            {
+                return util.Format(mobileNumber, PhoneNumberFormat.E164);
+            }
 
-            if (phone.StartsWith("+02"))
-                phone = "+20" + phone.Substring(3);
-
-            if (phone.StartsWith("0"))
-                phone = "+20" + phone.Substring(1);
-
-            return phone;
+            return "Invalid PhoneNumber!"; 
+           
         }
 
         public async Task<ApiResponse<List<ReturnedOwnerDto>>> GetAllOwners()
@@ -55,12 +51,13 @@ namespace RentalManagement.Repositories
 
         public async Task<ApiResponse<ReturnedOwnerDto>> CreateOwner(OwnerDto dto)
         {
+            dto.PhoneNumber = NormalizePhone(dto.PhoneNumber);
             var ownerExist = await _context.Owners.AnyAsync(_ => _.PhoneNumber == dto.PhoneNumber);
             if (ownerExist)
             {
                 return ApiResponse<ReturnedOwnerDto>.Failure("PhoneNumber is already Exist!");
             }
-            dto.PhoneNumber = NormalizePhone(dto.PhoneNumber);
+            
             var owner = _mapper.Map<Owner>(dto);
             _context.Owners.Add(owner);
             await _context.SaveChangesAsync();

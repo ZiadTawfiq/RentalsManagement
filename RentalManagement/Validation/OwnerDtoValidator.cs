@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using PhoneNumbers;
 using RentalManagement.DTOs;
 using System.Text.RegularExpressions;
 
@@ -23,15 +24,16 @@ public class OwnerDtoValidator : AbstractValidator<OwnerDto>
         if (string.IsNullOrWhiteSpace(phone))
             return false;
 
-        phone = phone.Trim()
-                     .Replace(" ", "")
-                     .Replace("-", "")
-                     .Replace("(", "")
-                     .Replace(")", "")
-                     .Replace("_", "");
+        var util = PhoneNumberUtil.GetInstance();
 
-        var international = Regex.IsMatch(phone, @"^\+[1-9]\d{7,14}$");
-        var egypt = Regex.IsMatch(phone, @"^(?:\+20|0)?1[0125]\d{8}$");
-        return international || egypt;
+        var mobileNumber = util.Parse(phone, null);
+        try {
+            return util.IsValidNumber(mobileNumber);
+
+        }
+        catch
+        {
+            return false; 
+        }        
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using RentalManagement.DTOs;
 using RentalManagement.Services;
@@ -7,6 +8,7 @@ namespace RentalManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles ="Admin,Accountant,DataEntry")]
     public class PropertyController : ControllerBase
     {
         private readonly IPropertyService _propertyService;

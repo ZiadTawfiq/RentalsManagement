@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RentalManagement;
 
@@ -11,9 +12,11 @@ using RentalManagement;
 namespace RentalManagement.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260205132133_Index_to_userName")]
+    partial class Index_to_userName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -200,6 +203,10 @@ namespace RentalManagement.Migrations
                     b.Property<DateTime>("ReservationTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("SalesRepresentativeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<decimal?>("SecurityDeposit")
                         .HasColumnType("decimal(18,2)");
 
@@ -214,6 +221,8 @@ namespace RentalManagement.Migrations
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("PropertyId");
+
+                    b.HasIndex("SalesRepresentativeId");
 
                     b.HasIndex("UnitId");
 
@@ -460,10 +469,7 @@ namespace RentalManagement.Migrations
                     b.Property<DateTime>("CalculatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("CampainMoney")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("CompanyRevenue")
+                    b.Property<decimal>("CompanyRevenue")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("CustomerOutstanding")
@@ -563,6 +569,12 @@ namespace RentalManagement.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RentalManagement.Entities.ApplicationUser", "SalesRepresentative")
+                        .WithMany()
+                        .HasForeignKey("SalesRepresentativeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("RentalManagement.Entities.Unit", "Unit")
                         .WithMany("Rentals")
                         .HasForeignKey("UnitId")
@@ -572,6 +584,8 @@ namespace RentalManagement.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("Property");
+
+                    b.Navigation("SalesRepresentative");
 
                     b.Navigation("Unit");
                 });

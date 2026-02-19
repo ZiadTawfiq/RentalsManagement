@@ -33,17 +33,21 @@ namespace RentalManagement.Repositories
         public async Task<ApiResponse<List<ReturnedEmployeeDto>>> GetAllEmployees()
         {
             var users = await _userManager.Users
-                .Where(_ => _.PropertyId != null)
+                .Include(u => u.Property)
                 .ToListAsync();
-            if (users == null)
-            {
-                return ApiResponse <List< ReturnedEmployeeDto>>.Failure("Employee not found");
 
+            var usersDto = new List<ReturnedEmployeeDto>();
+
+            foreach (var user in users)
+            {
+                var dto = _mapper.Map<ReturnedEmployeeDto>(user);
+                dto.Id = user.Id;
+                var rolesList = await _userManager.GetRolesAsync(user);
+                dto.Roles = rolesList.ToList();
+                usersDto.Add(dto);
             }
-            var usersDto = _mapper.Map<List<ReturnedEmployeeDto>>(users);
 
             return ApiResponse<List<ReturnedEmployeeDto>>.Success(usersDto); 
-           
         }
 
         public async Task<ApiResponse<ReturnedEmployeeDto>> GetEmployeeById(string id)
@@ -106,6 +110,23 @@ namespace RentalManagement.Repositories
 
 
 
+        }
+        public async Task<ApiResponse<string>> UpdateRoles(string id, List<string> roles)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return ApiResponse<string>.Failure("Employee not found");
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+                return ApiResponse<string>.Failure(string.Join(", ", removeResult.Errors.Select(e => e.Description)));
+
+            var addResult = await _userManager.AddToRolesAsync(user, roles);
+            if (!addResult.Succeeded)
+                return ApiResponse<string>.Failure(string.Join(", ", addResult.Errors.Select(e => e.Description)));
+
+            return ApiResponse<string>.Success("Roles updated successfully");
         }
     }
 }

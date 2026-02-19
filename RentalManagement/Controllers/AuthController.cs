@@ -15,7 +15,7 @@ namespace RentalManagement.Controllers
             return await authService.RefreshToken(dto.RefreshToken);
         }
         [HttpPost("login")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody]LoginDto dto)
         {
             var result = await authService.Login(dto);

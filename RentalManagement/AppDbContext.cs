@@ -55,6 +55,9 @@ namespace RentalManagement
                 .HasForeignKey(r => r.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<Rental>()
+                .ToTable("Rentals");
+
             // Rental ↔ Settlement (1 : 1)
             builder.Entity<Rental>()
                 .HasOne(r => r.RentalSettlement)
@@ -62,17 +65,40 @@ namespace RentalManagement
                 .HasForeignKey<RentalSettlement>(rs => rs.RentalId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<RentalSettlement>()
+                .ToTable("RentalSettlements");
+
+            builder.Entity<RentalNote>()
+                .ToTable("RentalNotes")
+                .HasOne(rn => rn.Rental)
+                .WithMany(r => r.RentalNotes)
+                .HasForeignKey(rn => rn.RentalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<RentalNote>()
+                .HasOne(rn => rn.AddedByEmployee)
+                .WithMany()
+                .HasForeignKey(rn => rn.AddedByEmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<Unit>()
+                .ToTable("Units")
                 .HasIndex(_ => _.Code)
                 .IsUnique();
 
             builder.Entity<Property>()
+                .ToTable("Properties")
                 .HasIndex(_ => _.Name)
                 .IsUnique();
 
             builder.Entity<Owner>()
+                .ToTable("Owners")
                 .HasIndex(_ => _.PhoneNumber)
                 .IsUnique();
+
+            builder.Entity<RentalSales>()
+                .ToTable("RentalSales");
+
             builder.Entity<ApplicationUser>()
                 .HasIndex(_ => _.UserName)
                 .IsUnique(); 
@@ -80,6 +106,7 @@ namespace RentalManagement
 
         public DbSet<Rental> Rentals { get; set; }
         public DbSet<RentalSales> RentalSales { get; set; }
+        public DbSet<RentalNote> RentalNotes { get; set; }
         public DbSet<RentalSettlement> RentalSettlements { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<Property> Properties { get; set; }

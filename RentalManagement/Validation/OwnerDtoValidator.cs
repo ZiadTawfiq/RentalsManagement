@@ -1,7 +1,6 @@
 ﻿using FluentValidation;
-using PhoneNumbers;
 using RentalManagement.DTOs;
-using System.Text.RegularExpressions;
+using RentalManagement.Helpers;
 
 public class OwnerDtoValidator : AbstractValidator<OwnerDto>
 {
@@ -14,26 +13,9 @@ public class OwnerDtoValidator : AbstractValidator<OwnerDto>
 
 
         RuleFor(x => x.PhoneNumber)
-            .Must(BeValidPhone)
+            .Must(phone => PhoneHelper.IsValid(phone))
             .NotEmpty()
             .WithMessage("Invalid PhoneNumber!");
 
-    }
-    private bool BeValidPhone(string phone)
-    {
-        if (string.IsNullOrWhiteSpace(phone))
-            return false;
-
-        var util = PhoneNumberUtil.GetInstance();
-
-        var mobileNumber = util.Parse(phone, null);
-        try {
-            return util.IsValidNumber(mobileNumber);
-
-        }
-        catch
-        {
-            return false; 
-        }        
     }
 }

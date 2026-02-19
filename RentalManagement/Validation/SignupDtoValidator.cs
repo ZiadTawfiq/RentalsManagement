@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using RentalManagement.DTOs;
+using RentalManagement.Helpers;
 
 public class SignupDtoValidator : AbstractValidator<SignupDto>
 {
@@ -10,9 +11,9 @@ public class SignupDtoValidator : AbstractValidator<SignupDto>
             .MinimumLength(3);
 
         RuleFor(x => x.PhoneNumber)
-        .NotEmpty()
-        .Matches(@"^(?:\+?[1-9]\d{6,14}|01[0-2,5][0-9]{8})$")
-        .WithMessage("Phone number must be Egyptian or international");
+            .Must(phone => PhoneHelper.IsValid(phone))
+            .NotEmpty()
+            .WithMessage("Phone number must be a valid number (e.g., Egyptian 010... or international with +)");
 
         RuleFor(x => x.Password)
             .NotEmpty()

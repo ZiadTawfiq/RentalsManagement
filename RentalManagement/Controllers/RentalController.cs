@@ -22,7 +22,8 @@ namespace RentalManagement.Controllers
         [Authorize(Roles = "Admin,DataEntry,Accountant")]
         public async Task<IActionResult> CreateRental([FromBody] CreateRentalDto dto)
         {
-            var result = await _rentalService.CreateRental(dto);
+            string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System"; 
+            var result = await _rentalService.CreateRental(dto , userId);
             return Ok(result);
         }
 
@@ -32,7 +33,8 @@ namespace RentalManagement.Controllers
 
         public async Task<IActionResult> UpdateRental([FromBody] UpdateRentalDto dto)
         {
-            var result = await _rentalService.UpdateRental(dto);
+            string UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var result = await _rentalService.UpdateRental(dto,UserId);
             return Ok(result);
         }
 
@@ -92,7 +94,7 @@ namespace RentalManagement.Controllers
         [Route("Filter")]
         [Authorize(Roles = "Admin,Accountant")]
 
-        public async Task<IActionResult> Filter([FromBody] RentalFilterDto dto)
+        public async Task<IActionResult> Filter([FromQuery] RentalFilterDto dto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -107,7 +109,24 @@ namespace RentalManagement.Controllers
             var res = await _rentalService.FilterRental(dto);
             return Ok(res); 
         }
-     
-
+        [HttpPost("{rentalId}/notes")]
+        [Authorize(Roles = "Admin,Accountant,DataEntry,SalesRep")]
+        public async Task<IActionResult> AddNote(int rentalId, [FromBody] AddNoteDto dto)
+        {
+            var employeeId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _rentalService.AddRentalNote(rentalId, dto.Content, employeeId);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("CommissionAllSalesRep")]
+        public async Task<IActionResult> GetCommissionForAllSalesRep()
+        {
+            var res = await _rentalService.GetAllSalesRepCommission(); 
+            if (!res.IsSuccess)
+            {
+                return BadRequest(res); 
+            }
+            return Ok(res);
+        }
     }
 }

@@ -185,9 +185,6 @@ namespace RentalManagement.Migrations
                     b.Property<bool>("HasCampaignDiscount")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal?>("OwnerDeposit")
                         .HasColumnType("decimal(18,2)");
 
@@ -217,7 +214,7 @@ namespace RentalManagement.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("Rentals");
+                    b.ToTable("Rentals", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.ApplicationUser", b =>
@@ -321,7 +318,7 @@ namespace RentalManagement.Migrations
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
 
-                    b.ToTable("Owners");
+                    b.ToTable("Owners", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.Property", b =>
@@ -341,7 +338,37 @@ namespace RentalManagement.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Properties");
+                    b.ToTable("Properties", (string)null);
+                });
+
+            modelBuilder.Entity("RentalManagement.Entities.RentalNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedByEmployeeId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RentalId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddedByEmployeeId");
+
+                    b.HasIndex("RentalId");
+
+                    b.ToTable("RentalNotes", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.RentalSales", b =>
@@ -362,7 +389,7 @@ namespace RentalManagement.Migrations
 
                     b.HasIndex("SalesRepresentativeId");
 
-                    b.ToTable("RentalSales");
+                    b.ToTable("RentalSales", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.SystemSetting", b =>
@@ -411,7 +438,7 @@ namespace RentalManagement.Migrations
 
                     b.HasIndex("PropertyId");
 
-                    b.ToTable("Units");
+                    b.ToTable("Units", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.JwtToken.RefreshToken", b =>
@@ -495,7 +522,7 @@ namespace RentalManagement.Migrations
                     b.HasIndex("RentalId")
                         .IsUnique();
 
-                    b.ToTable("RentalSettlements");
+                    b.ToTable("RentalSettlements", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -587,6 +614,24 @@ namespace RentalManagement.Migrations
                     b.Navigation("Property");
                 });
 
+            modelBuilder.Entity("RentalManagement.Entities.RentalNote", b =>
+                {
+                    b.HasOne("RentalManagement.Entities.ApplicationUser", "AddedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("AddedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Rental", "Rental")
+                        .WithMany("RentalNotes")
+                        .HasForeignKey("RentalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddedByEmployee");
+
+                    b.Navigation("Rental");
+                });
+
             modelBuilder.Entity("RentalManagement.Entities.RentalSales", b =>
                 {
                     b.HasOne("Rental", "Rental")
@@ -649,6 +694,8 @@ namespace RentalManagement.Migrations
 
             modelBuilder.Entity("Rental", b =>
                 {
+                    b.Navigation("RentalNotes");
+
                     b.Navigation("RentalSales");
 
                     b.Navigation("RentalSettlement")

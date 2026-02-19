@@ -136,6 +136,7 @@ namespace RentalManagement.Services
             var Emp = new ApplicationUser
             {
                 UserName = dto.UserName,
+                PhoneNumber = dto.PhoneNumber,
                 PropertyId = dto.PropertyId,
                 CachedTotalCommission = 0
 

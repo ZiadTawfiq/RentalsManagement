@@ -28,14 +28,14 @@ namespace RentalManagement.JwtToken
             {
                 claims.Add(new Claim(ClaimTypes.Role, role)); 
             }
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["jwt:key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             
             var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
 
-                issuer: _configuration["issuer"],
-                audience: _configuration["audience"],
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
                 expires: DateTime.UtcNow.AddMinutes(15),
                 claims: claims,
                 signingCredentials: cred

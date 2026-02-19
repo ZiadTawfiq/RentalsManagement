@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+    --color-brand-50: #f0f7ff;
+    --color-brand-100: #e0effe;
+    --color-brand-500: #3b82f6;
+    --color-brand-600: #2563eb;
+    --color-brand-700: #1d4ed8;
+}
+
+/* Global Styles */
+body {
+    @apply bg-gray-50 text-gray-900;
+}
+
+/* Global Transitions */
+* {
+    @apply transition-all duration-200;
+}
+
+/* Page Containers */
+.page-container {
+    @apply p-8 max-w-7xl mx-auto;
+}
+
+/* Card Styling */
+.card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
+}
+
+/* Input Styling - Rectangular & Visible */
+.input-base {
+    @apply mt-1 block w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 shadow-sm placeholder-gray-400 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white focus:outline-none sm:text-sm transition-all;
+}
+
+/* Field Grouping */
+.field-group {
+    @apply p-6 bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 space-y-4;
+}
+
+.section-header {
+    @apply text-sm font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2;
+}
+
+/* Label Styling */
+.label-base {
+    @apply block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1;
+}
+
+/* Button Styling */
+.btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all;
+}
+
+.btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-gray-200 text-sm font-bold rounded-xl text-gray-700 bg-white hover:bg-gray-50 active:scale-95 transition-all;
+}
+
+/* Modal Styling - Lightened background */
+.modal-overlay {
+    @apply fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4;
+    animation: fade-in 0.3s ease-out forwards;
+}
+
+.modal-content {
+    @apply bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-white;
+    animation: zoom-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes zoom-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Table Enhancements */
+.table-header {
+    @apply px-6 py-4 bg-gray-50/50 text-left text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100;
+}
+
+.table-row {
+    @apply hover:bg-blue-50/30 transition-colors border-b border-gray-50 last:border-0;
+}
+
+/* Hide Number Input Arrows */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+input[type=number] {
+    -moz-appearance: textfield !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+}

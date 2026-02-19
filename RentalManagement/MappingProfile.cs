@@ -8,7 +8,8 @@ namespace RentalManagement
     {
         public MappingProfile()
         {
-            CreateMap<ApplicationUser, ReturnedEmployeeDto>();
+            CreateMap<ApplicationUser, ReturnedEmployeeDto>()
+                .ForMember(d => d.PropertyName, opt => opt.MapFrom(s => s.Property != null ? s.Property.Name : "N/A"));
 
             CreateMap<UpdateEmployeeDto, ApplicationUser>(); 
 
@@ -23,8 +24,8 @@ namespace RentalManagement
             CreateMap<UnitDto, Unit>();
 
             CreateMap<Unit, ReturnedUnitDto>()
-                .ForMember(d => d.OwnerName, opt => opt.MapFrom(s => s.Owner.Name))
-                .ForMember(d => d.PropertyName, opt => opt.MapFrom(s => s.Property.Name));
+                .ForMember(d => d.OwnerName, opt => opt.MapFrom(s => s.Owner != null ? s.Owner.Name : "N/A"))
+                .ForMember(d => d.PropertyName, opt => opt.MapFrom(s => s.Property != null ? s.Property.Name : "N/A"));
 
         }
     }

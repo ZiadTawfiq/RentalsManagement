@@ -40,10 +40,10 @@ public class Rental
 
     // Meta
     public DateTime ReservationTime { get; set; }
-    public string? Notes { get; set; }
-
     public ICollection<RentalSales> RentalSales { get; set; } = new List<RentalSales>();
+    public ICollection<RentalNote> RentalNotes { get; set; } = new List<RentalNote>();
     public RentalSettlement RentalSettlement { get; set; }
+    public RentalStatus status { get; set;  }
 
 
 }

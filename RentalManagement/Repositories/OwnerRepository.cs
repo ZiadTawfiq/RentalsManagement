@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using PhoneNumbers;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
+using RentalManagement.Helpers;
 
 namespace RentalManagement.Repositories
 {
@@ -18,18 +18,7 @@ namespace RentalManagement.Repositories
         }
         private string NormalizePhone(string phone)
         {
-            if (string.IsNullOrWhiteSpace(phone))
-                return phone;
-            var util = PhoneNumberUtil.GetInstance();
-
-            var mobileNumber = util.Parse(phone,null);
-            if (util.IsValidNumber(mobileNumber))
-            {
-                return util.Format(mobileNumber, PhoneNumberFormat.E164);
-            }
-
-            return "Invalid PhoneNumber!"; 
-           
+            return PhoneHelper.Normalize(phone);
         }
 
         public async Task<ApiResponse<List<ReturnedOwnerDto>>> GetAllOwners()

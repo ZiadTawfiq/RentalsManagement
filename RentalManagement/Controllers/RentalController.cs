@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentalManagement.DTOs;
+using RentalManagement.Entities;
 using RentalManagement.Services;
 using System.Security.Claims;
 
@@ -63,24 +64,9 @@ namespace RentalManagement.Controllers
         [HttpGet("commission/campaign")]
         [Authorize(Roles = "Admin,Accountant")]
 
-        public async Task<IActionResult> GetCampaignCommission()
-        {
-            var result =
-                await _rentalService.GetCampainCommission();
+      
 
-            return Ok(result);
-        }
-
-        [HttpGet("commission/sales/{salesRepId}")]
-        [Authorize(Roles = "Admin,Accountant,SalesRep")]
-
-        public async Task<IActionResult> GetCommissionForSalesRep(string salesRepId)
-        {
-            var result =
-                await _rentalService.GetCommissionForSalesRep(salesRepId);
-
-            return Ok(result);
-        }
+      
         [HttpDelete]
         [Route("{Id}")]
         [Authorize(Roles = "Admin,Accountant")]
@@ -94,7 +80,7 @@ namespace RentalManagement.Controllers
         [Route("Filter")]
         [Authorize(Roles = "Admin,Accountant")]
 
-        public async Task<IActionResult> Filter([FromQuery] RentalFilterDto dto)
+        public async Task<IActionResult> Filter([FromBody] RentalFilterDto dto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -117,16 +103,28 @@ namespace RentalManagement.Controllers
             var result = await _rentalService.AddRentalNote(rentalId, dto.Content, employeeId);
             return Ok(result);
         }
-        [HttpGet]
-        [Route("CommissionAllSalesRep")]
-        public async Task<IActionResult> GetCommissionForAllSalesRep()
+        [HttpPut("{rentalId}/complete")]
+        [Authorize(Roles ="Accountant,Admin,Operation")]
+        public async Task<IActionResult> CompleteRental([FromRoute]int rentalId)
         {
-            var res = await _rentalService.GetAllSalesRepCommission(); 
-            if (!res.IsSuccess)
-            {
-                return BadRequest(res); 
-            }
-            return Ok(res);
+            var result = await _rentalService.CompleteRental(rentalId);
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
         }
+        [HttpPut("{rentalId}/Cancel")]
+        [Authorize(Roles = "Accountant,Admin,Operation")]
+        public async Task<IActionResult> CancelRental([FromRoute] int rentalId,[FromBody]CancelRentalDto dto)
+        {
+            var result = await _rentalService.CancelRental(rentalId,dto.Status);
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
     }
 }

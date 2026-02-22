@@ -138,7 +138,6 @@ namespace RentalManagement.Services
                 UserName = dto.UserName,
                 PhoneNumber = dto.PhoneNumber,
                 PropertyId = dto.PropertyId,
-                CachedTotalCommission = 0
 
             };
           

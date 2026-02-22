@@ -36,7 +36,7 @@ namespace RentalManagement.JwtToken
 
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
-                expires: DateTime.UtcNow.AddMinutes(15),
+                expires: DateTime.UtcNow.AddDays(1),
                 claims: claims,
                 signingCredentials: cred
 

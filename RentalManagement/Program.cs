@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
+using RentalManagement.Mapping;
 
 
 namespace RentalManagement
@@ -96,6 +97,7 @@ namespace RentalManagement
             builder.Services.AddScoped<IUnitService, UnitService>();
             builder.Services.AddScoped<IRentalService, RentalService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
+            builder.Services.AddScoped<ICommissionService, CommissionService>(); 
 
             /* ===================== Mapping ===================== */
             builder.Services.AddAutoMapper(typeof(MappingProfile));

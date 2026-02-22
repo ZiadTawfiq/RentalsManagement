@@ -2,7 +2,7 @@
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
-namespace RentalManagement
+namespace RentalManagement.Mapping
 {
     public class MappingProfile : Profile
     {

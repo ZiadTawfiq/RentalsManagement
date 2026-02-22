@@ -1,10 +1,10 @@
 ﻿using RentalManagement.Entities;
+using System.Text.Json.Serialization;
 
 public class Rental
 {
     public int Id { get; set; }
 
-  
     // Dates
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
@@ -13,8 +13,7 @@ public class Rental
     public decimal DayPriceCustomer { get; set; }
     public decimal DayPriceOwner { get; set; }
 
-    //public decimal BasePrice { get; set; }
-    //public decimal NetPrice { get; set; }
+ 
 
     // Payments (FACTS)
     public decimal CustomerDeposit { get; set; }     // اللي العميل دفعه
@@ -43,7 +42,9 @@ public class Rental
     public ICollection<RentalSales> RentalSales { get; set; } = new List<RentalSales>();
     public ICollection<RentalNote> RentalNotes { get; set; } = new List<RentalNote>();
     public RentalSettlement RentalSettlement { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public RentalStatus status { get; set;  }
-
+    public int? campainId { get; set;  }
+    public Campain? campain { get; set; }
 
 }

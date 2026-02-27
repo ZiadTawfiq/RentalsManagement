@@ -2,9 +2,11 @@
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
+using AutoMapper;
+
 namespace RentalManagement.Repositories
 {
-    public class RentalRepository(AppDbContext _context) : IRentalRepository
+    public class RentalRepository(AppDbContext _context, IMapper _mapper) : IRentalRepository
     {
         public async Task<ApiResponse<string>> DeleteRental(int RentalId)
         {
@@ -49,63 +51,7 @@ namespace RentalManagement.Repositories
                     .ThenInclude(rn => rn.AddedByEmployee)
                 .ToListAsync();
 
-            var result = rentals.Select(r => new ReturnedRentalDto
-            {
-                Id = r.Id,
-                UnitId = r.UnitId,
-                UnitCode = r.Unit?.Code ?? "N/A",
-                OwnerId = r.OwnerId,
-                OwnerName = r.Owner?.Name ?? "N/A",
-                PropertyId = r.PropertyId,
-                PropertyName = r.Property?.Name ?? "N/A",
-
-                StartDate = r.StartDate,
-                EndDate = r.EndDate,
-
-                DayPriceCustomer = r.DayPriceCustomer,
-                DayPriceOwner = r.DayPriceOwner,
-
-                CustomerDeposit = r.CustomerDeposit,
-                CustomerOutstanding = r.RentalSettlement?.CustomerOutstanding ?? 0,
-                OwnerDeposit = r.OwnerDeposit,
-                OwnerRemaining = r.RentalSettlement?.OwnerRemaining ?? 0,
-                SecurityDeposit = r.SecurityDeposit,
-
-                TotalDays = r.EndDate.DayNumber - r.StartDate.DayNumber,
-                TotalAmount = (r.EndDate.DayNumber - r.StartDate.DayNumber) * r.DayPriceCustomer,
-
-                HasCampaignDiscount = r.HasCampaignDiscount,
-
-                CustomerFullName = r.CustomerFullName,
-                CustomerPhoneNumber = r.CustomerPhoneNumber,
-
-                LastNote = r.RentalNotes?.OrderByDescending(n => n.CreatedAt).FirstOrDefault()?.Content,
-
-                TotalCommision = r.RentalSettlement?.SalesCommission ?? 0,
-
-
-                Sales = r.RentalSales
-                      .Select(rs => new ReturnedRentalSalesDto
-                      {
-                          SalesRepresentativeId = rs.SalesRepresentativeId,
-                          SalesRepName = rs.SalesRepresentative?.UserName ?? "UNKNOWN",
-                          Percentage = rs.CommissionPercentage,
-                          CommissionAmount = rs.CommissionAmount
-                      })
-                      .ToList(),
-
-                RentalNotes = r.RentalNotes?
-                      .Select(rn => new ReturnedRentalNoteDto
-                      {
-                          Id = rn.Id,
-                          Content = rn.Content,
-                          CreatedAt = rn.CreatedAt,
-                          AddedByEmployeeName = rn.AddedByEmployee?.UserName ?? "System"
-                      })
-                      .OrderByDescending(n => n.CreatedAt)
-                      .ToList()
-
-            }).ToList();
+            var result = _mapper.Map<List<ReturnedRentalDto>>(rentals);
             return ApiResponse<List<ReturnedRentalDto>>.Success(result);
         }
 
@@ -114,6 +60,9 @@ namespace RentalManagement.Repositories
         {
             var rentals = await _context.Rentals
                   .Include(r => r.RentalSettlement)
+                  .Include(r => r.Unit)
+                  .Include(r => r.Owner)
+                  .Include(r => r.Property)
                   .Include(r => r.RentalSales)
                       .ThenInclude(rs => rs.SalesRepresentative)
                   .Include(r => r.RentalNotes)
@@ -121,61 +70,7 @@ namespace RentalManagement.Repositories
                   .Where(r => r.RentalSales.Any(rs => rs.SalesRepresentativeId == EmployeeId))
                   .ToListAsync();
 
-            var result = rentals.Select(r => new ReturnedRentalDto
-            {
-                Id = r.Id,
-                UnitId = r.UnitId,
-                OwnerId = r.OwnerId,
-                PropertyId = r.PropertyId,
-
-                StartDate = r.StartDate,
-                EndDate = r.EndDate,
-
-                DayPriceCustomer = r.DayPriceCustomer,
-                DayPriceOwner = r.DayPriceOwner,
-
-                CustomerDeposit = r.CustomerDeposit,
-                CustomerOutstanding = r.RentalSettlement?.CustomerOutstanding ?? 0,
-                OwnerDeposit = r.OwnerDeposit,
-                OwnerRemaining = r.RentalSettlement?.OwnerRemaining ?? 0,
-                SecurityDeposit = r.SecurityDeposit,
-
-                TotalDays = r.EndDate.DayNumber - r.StartDate.DayNumber,
-                TotalAmount = (r.EndDate.DayNumber - r.StartDate.DayNumber) * r.DayPriceCustomer,
-
-                HasCampaignDiscount = r.HasCampaignDiscount,
-
-                CustomerFullName = r.CustomerFullName,
-                CustomerPhoneNumber = r.CustomerPhoneNumber,
-
-                LastNote = r.RentalNotes?.OrderByDescending(n => n.CreatedAt).FirstOrDefault()?.Content,
-
-                TotalCommision = r.RentalSettlement.SalesCommission ?? 0 , 
-        
-
-                Sales = r.RentalSales
-                      .Where(rs => rs.SalesRepresentativeId == EmployeeId)
-                      .Select(rs => new ReturnedRentalSalesDto
-                      {
-                          SalesRepresentativeId = rs.SalesRepresentativeId,
-                          SalesRepName = rs.SalesRepresentative.UserName ?? "UNKNOWN",
-                          Percentage = rs.CommissionPercentage,
-                          CommissionAmount = rs.CommissionAmount
-                      })
-                      .ToList(),
-
-                RentalNotes = r.RentalNotes?
-                      .Select(rn => new ReturnedRentalNoteDto
-                      {
-                          Id = rn.Id,
-                          Content = rn.Content,
-                          CreatedAt = rn.CreatedAt,
-                          AddedByEmployeeName = rn.AddedByEmployee?.UserName ?? "System"
-                      })
-                      .OrderByDescending(n => n.CreatedAt)
-                      .ToList()
-
-            }).ToList();
+            var result = _mapper.Map<List<ReturnedRentalDto>>(rentals);
             return ApiResponse<List<ReturnedRentalDto>>.Success(result); 
         }
     }

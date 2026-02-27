@@ -60,7 +60,8 @@ export default function Owners() {
                 }
             }
         } catch (err) {
-            alert('Error saving owner: ' + err.message);
+            const msg = err.response?.data?.message || err.response?.data?.title || err.message;
+            alert(msg || 'Error saving owner');
         }
     };
 

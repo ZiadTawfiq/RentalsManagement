@@ -70,20 +70,41 @@ namespace RentalManagement.Repositories
 
         public async Task<ApiResponse<string>> DeleteProperty(int id)
         {
-            var property = await _context.Properties
-                .Include(p => p.Units)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            try
+            {
+                var property = await _context.Properties
+                    .Include(p => p.Units)
+                    .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (property == null)
-                return ApiResponse<string>.Failure("Property not found");
+                if (property == null)
+                    return ApiResponse<string>.Failure("Property not found");
 
-            if (property.Units.Any())
-                return ApiResponse<string>.Failure("Cannot delete property with units");
+                if (property.Units.Any())
+                    return ApiResponse<string>.Failure("Cannot delete property because it has registered units. Please delete the units first.");
 
-            _context.Properties.Remove(property);
-            await _context.SaveChangesAsync();
+                // Check for rentals as well
+                var hasRentals = await _context.Rentals.AnyAsync(r => r.PropertyId == id);
+                if (hasRentals)
+                    return ApiResponse<string>.Failure("This property is linked to active or past rentals. To maintain data integrity, it cannot be deleted while rentals exist.");
 
-            return ApiResponse<string>.Success("Property deleted successfully");
+                // Check for users (employees) assigned to this property
+                var hasUsers = await _context.Users.AnyAsync(u => u.PropertyId == id);
+                if (hasUsers)
+                    return ApiResponse<string>.Failure("There are employees assigned to this property. Please reassign them to a different property before deletion.");
+
+                _context.Properties.Remove(property);
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<string>.Success("Property deleted successfully");
+            }
+            catch (DbUpdateException)
+            {
+                return ApiResponse<string>.Failure("Unable to delete this property because it's being used by other parts of the system (like system logs or historical records).");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<string>.Failure($"Error deleting property: {ex.Message}");
+            }
         }
     }
 

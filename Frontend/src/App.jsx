@@ -6,20 +6,38 @@ import Rentals from './pages/Rentals';
 import Properties from './pages/Properties';
 import Units from './pages/Units';
 import Employees from './pages/Employees';
+import Commission from './pages/Commission';
+import Campaigns from './pages/Campaigns';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useEffect } from 'react';
 
 function App() {
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (document.activeElement.type === 'number') {
+        document.activeElement.blur();
+      }
+    };
+    document.addEventListener('wheel', handleWheel, { passive: true });
+    return () => document.removeEventListener('wheel', handleWheel);
+  }, []);
+
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/owners" element={<Owners />} />
-          <Route path="/rentals" element={<Rentals />} />
-          <Route path="/properties" element={<Properties />} />
-          <Route path="/units" element={<Units />} />
-          <Route path="/employees" element={<Employees />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/owners" element={<Owners />} />
+            <Route path="/rentals" element={<Rentals />} />
+            <Route path="/properties" element={<Properties />} />
+            <Route path="/units" element={<Units />} />
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/commission" element={<Commission />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+          </Route>
         </Route>
       </Routes>
     </Router>
@@ -27,3 +45,4 @@ function App() {
 }
 
 export default App;
+

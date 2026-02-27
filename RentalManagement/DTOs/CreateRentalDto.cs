@@ -17,6 +17,7 @@
         public decimal? SecurityDeposit { get; set; }
 
         public bool HasCampaignDiscount { get; set; }
+        public int? CampainId { get; set; }
 
         public string CustomerFullName { get; set; }
         public string CustomerPhoneNumber { get; set; }

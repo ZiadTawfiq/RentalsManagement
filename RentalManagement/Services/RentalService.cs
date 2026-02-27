@@ -2,10 +2,11 @@
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 using RentalManagement.Repositories;
+using AutoMapper;
 
 namespace RentalManagement.Services
 {
-    public class RentalService(ISystemSettingService _systemSetting, AppDbContext _context, IRentalRepository _rentalRepository) : IRentalService
+    public class RentalService(ISystemSettingService _systemSetting, AppDbContext _context, IRentalRepository _rentalRepository, IMapper _mapper) : IRentalService
     {
         public async Task<ApiResponse< ReturnedRentalDto>> CreateRental(CreateRentalDto dto,string UserId)
         {
@@ -48,6 +49,7 @@ namespace RentalManagement.Services
                 DayPriceOwner = dto.DayPriceOwner,
                 OwnerDeposit = dto.OwnerDeposit,
                 HasCampaignDiscount = dto.HasCampaignDiscount,
+                campainId = dto.CampainId,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 SecurityDeposit = dto.SecurityDeposit,
@@ -118,51 +120,7 @@ namespace RentalManagement.Services
                 .LoadAsync(); 
          
 
-            return ApiResponse<ReturnedRentalDto>.Success(new ReturnedRentalDto
-            {
-                Id = rental.Id,
-                UnitId = rental.UnitId,
-                OwnerId = rental.OwnerId,
-                PropertyId = rental.PropertyId,
-
-                StartDate = rental.StartDate,
-                EndDate = rental.EndDate,
-
-                DayPriceCustomer = rental.DayPriceCustomer,
-                DayPriceOwner = rental.DayPriceOwner,
-
-                HasCampaignDiscount = rental.HasCampaignDiscount,
-
-                CustomerFullName = rental.CustomerFullName,
-                CustomerPhoneNumber = rental.CustomerPhoneNumber,
-                Sales = rental.RentalSales
-                .Select(rs => new ReturnedRentalSalesDto
-                {
-                    SalesRepresentativeId = rs.SalesRepresentativeId,
-                    SalesRepName = rs.SalesRepresentative.UserName,
-                    Percentage = rs.CommissionPercentage,
-                    CommissionAmount = rs.CommissionAmount
-                }).ToList(),
-
-                CustomerDeposit = rental.CustomerDeposit,
-                CustomerOutstanding = rental.RentalSettlement?.CustomerOutstanding ?? 0,
-                OwnerDeposit = rental.OwnerDeposit,
-                OwnerRemaining = rental.RentalSettlement?.OwnerRemaining ?? 0,
-                SecurityDeposit = rental.SecurityDeposit,
-
-                TotalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber),
-                TotalAmount = (rental.EndDate.DayNumber - rental.StartDate.DayNumber) * rental.DayPriceCustomer,
-                TotalCommision = totalCommision,
-                
-                LastNote = dto.Notes,
-                RentalNotes = rental.RentalNotes?.Select(rn => new ReturnedRentalNoteDto
-                {
-                    Id = rn.Id,
-                    Content = rn.Content,
-                    CreatedAt = rn.CreatedAt,
-                    AddedByEmployeeName = rn.AddedByEmployee?.UserName
-                }).ToList() ?? new List<ReturnedRentalNoteDto>()
-            });
+            return ApiResponse<ReturnedRentalDto>.Success(_mapper.Map<ReturnedRentalDto>(rental));
         }
 
         public async Task<ApiResponse<string>> DeleteRental(int Id)
@@ -206,65 +164,19 @@ namespace RentalManagement.Services
             }
 
             var rentals = await query
-                .Select(rental => new ReturnedRentalDto
-                {
-                    Id = rental.Id,
-                    UnitId = rental.UnitId,
-                    OwnerId = rental.OwnerId,
-                    PropertyId = rental.PropertyId,
-                    StartDate = rental.StartDate,
-                    EndDate = rental.EndDate,
-                    DayPriceCustomer = rental.DayPriceCustomer,
-                    DayPriceOwner = rental.DayPriceOwner,
-                    HasCampaignDiscount = rental.HasCampaignDiscount,
-                    CustomerFullName = rental.CustomerFullName,
-                    CustomerPhoneNumber = rental.CustomerPhoneNumber,
-
-                    Sales = rental.RentalSales
-                        .Select(rs => new ReturnedRentalSalesDto
-                        {
-                            SalesRepName = rs.SalesRepresentative != null
-                                ? rs.SalesRepresentative.UserName
-                                : "UNKNOWN",
-                            Percentage = rs.CommissionPercentage,
-                            CommissionAmount = rs.CommissionAmount
-                        })
-                        .ToList(),
-
-                    CustomerDeposit = rental.CustomerDeposit,
-
-                    CustomerOutstanding = rental.RentalSettlement != null
-                        ? rental.RentalSettlement.CustomerOutstanding
-                        : 0,
-
-                    OwnerDeposit = rental.OwnerDeposit,
-
-                    OwnerRemaining = rental.RentalSettlement != null
-                        ? rental.RentalSettlement.OwnerRemaining
-                        : 0,
-
-                    SecurityDeposit = rental.SecurityDeposit,
-
-                    RentalNotes = rental.RentalNotes
-                        .Select(rn => new ReturnedRentalNoteDto
-                        {
-                            Id = rn.Id,
-                            Content = rn.Content,
-                            CreatedAt = rn.CreatedAt,
-                            AddedByEmployeeName = rn.AddedByEmployee != null
-                                ? rn.AddedByEmployee.UserName
-                                : "System"
-                        })
-                        .ToList(),
-
-                    LastNote = rental.RentalNotes
-                        .OrderByDescending(n => n.CreatedAt)
-                        .Select(n => n.Content)
-                        .FirstOrDefault()
-                })
+                .Include(r => r.Unit)
+                .Include(r => r.Owner)
+                .Include(r => r.Property)
+                .Include(r => r.RentalSettlement)
+                .Include(r => r.RentalSales)
+                    .ThenInclude(rs => rs.SalesRepresentative)
+                .Include(r => r.RentalNotes)
+                    .ThenInclude(rn => rn.AddedByEmployee)
                 .ToListAsync();
 
-            return ApiResponse<List<ReturnedRentalDto>>.Success(rentals);
+            var result = _mapper.Map<List<ReturnedRentalDto>>(rentals);
+
+            return ApiResponse<List<ReturnedRentalDto>>.Success(result);
         }
 
         public async Task<ApiResponse<List<ReturnedRentalDto>>> GetAllRentals()
@@ -334,6 +246,7 @@ namespace RentalManagement.Services
             rental.SecurityDeposit = dto.SecurityDeposit;
 
             rental.HasCampaignDiscount = dto.HasCampaignDiscount;
+            rental.campainId = dto.CampainId;
 
             rental.OwnerId = dto.OwnerId;
             rental.UnitId = dto.UnitId;
@@ -393,53 +306,7 @@ namespace RentalManagement.Services
                 .Include(_ => _.SalesRepresentative)
                 .ToListAsync(); 
          
-            return ApiResponse<ReturnedRentalDto>.Success(new ReturnedRentalDto
-            {
-                Id = rental.Id,
-                UnitId = rental.UnitId,
-                OwnerId = rental.OwnerId,
-                PropertyId = rental.PropertyId,
-
-                StartDate = rental.StartDate,
-                EndDate = rental.EndDate,
-
-                DayPriceCustomer = rental.DayPriceCustomer,
-                DayPriceOwner = rental.DayPriceOwner,
-
-                HasCampaignDiscount = rental.HasCampaignDiscount,
-
-                CustomerFullName = rental.CustomerFullName,
-                CustomerPhoneNumber = rental.CustomerPhoneNumber,
-               
-
-                Sales = rental.RentalSales
-                .Select(rs => new ReturnedRentalSalesDto
-                {
-                    SalesRepresentativeId = rs.SalesRepresentativeId,
-                    SalesRepName = rs.SalesRepresentative.UserName,
-                    Percentage = rs.CommissionPercentage,
-                    CommissionAmount = rs.CommissionAmount
-                }).ToList(),
-
-                CustomerDeposit = rental.CustomerDeposit,
-                CustomerOutstanding = rental.RentalSettlement?.CustomerOutstanding ?? 0,
-                OwnerDeposit = rental.OwnerDeposit,
-                OwnerRemaining = rental.RentalSettlement?.OwnerRemaining ?? 0,
-                SecurityDeposit = rental.SecurityDeposit,
-
-                TotalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber),
-                TotalAmount = (rental.EndDate.DayNumber - rental.StartDate.DayNumber) * rental.DayPriceCustomer,
-                TotalCommision = totalCommision,
-                
-                LastNote = dto.Notes,
-                RentalNotes = rental.RentalNotes?.Select(rn => new ReturnedRentalNoteDto
-                {
-                    Id = rn.Id,
-                    Content = rn.Content,
-                    CreatedAt = rn.CreatedAt,
-                    AddedByEmployeeName = rn.AddedByEmployee?.UserName ?? "System"
-                }).ToList() ?? new List<ReturnedRentalNoteDto>()
-            });
+            return ApiResponse<ReturnedRentalDto>.Success(_mapper.Map<ReturnedRentalDto>(rental));
         }
 
         public async Task<ApiResponse<ReturnedRentalNoteDto>> AddRentalNote(int rentalId, string content, string? employeeId)
@@ -479,7 +346,7 @@ namespace RentalManagement.Services
 
        
 
-        public async Task<ApiResponse<string>> CancelRental(int rentalId,RentalStatus rentalStatus)
+        public async Task<ApiResponse<string>> CancelRental(int rentalId, RentalStatus rentalStatus, string? cancellationReason)
         {
             var res = await _context.RentalSales
                  .Include(_ => _.SalesRepresentative)
@@ -514,51 +381,59 @@ namespace RentalManagement.Services
 
                 }
                 rental.RentalSettlement.CampainMoney = 0;
+                rental.RentalSettlement.SalesCommission = 0;
 
                 rental.status = RentalStatus.Cancelled;
             }
             else if (rentalStatus == RentalStatus.EarlyCheckout)
             {
+                
                 var today = DateOnly.FromDateTime(DateTime.Now);
-                var totalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber);
-                var usedDays = (today.DayNumber - rental.StartDate.DayNumber) + 1;
 
-                if (totalDays < 0) totalDays = 0;
-                if (usedDays < 0) usedDays = 0;
-
-
-                var commissionPerDay = (rental.RentalSettlement.TotalCustomerAmount - rental.RentalSettlement.OwnerTotalAmount) / totalDays;
-
-                decimal commissionForUsedDays = commissionPerDay * usedDays;
-
-                if (rental.HasCampaignDiscount)
+                if (today < rental.EndDate)
                 {
-                    if (rental.RentalSettlement == null)
-                    {
-                        return ApiResponse<string>.Failure("RentalSettlement is not found!"); 
-                    }
-                    rental.RentalSettlement.CampainMoney = (campainDiscount / 100m) * commissionForUsedDays;
-                    commissionForUsedDays -= rental.RentalSettlement.CampainMoney??0m; 
+                    rental.CheckoutDate = today;
+                    var totalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber);
+                    var usedDays = (today.DayNumber - rental.StartDate.DayNumber) + 1;
 
+                    if (totalDays <= 0) totalDays = 1; // Avoid division by zero
+                    if (usedDays < 0) usedDays = 0;
+                    if (usedDays > totalDays) usedDays = totalDays;
+
+                    var pricePerDayCustomer = rental.DayPriceCustomer;
+                    var pricePerDayOwner = rental.DayPriceOwner;
+
+                    var usedAmountCustomer = pricePerDayCustomer * usedDays;
+                    var usedAmountOwner = pricePerDayOwner * usedDays;
+
+                    var commissionForUsedDays = usedAmountCustomer - usedAmountOwner;
+
+                    if (rental.HasCampaignDiscount)
+                    {
+                        if (rental.RentalSettlement == null)
+                        {
+                            return ApiResponse<string>.Failure("RentalSettlement is not found!");
+                        }
+                        decimal campaignPercentage = await _systemSetting.GetCompainPercentage();
+                        rental.RentalSettlement.CampainMoney = (campaignPercentage / 100m) * commissionForUsedDays;
+                        commissionForUsedDays -= rental.RentalSettlement.CampainMoney ?? 0m;
+                    }
+
+                    // Update Settlement records to reflect actual stay
+                    rental.RentalSettlement.TotalCustomerAmount = usedAmountCustomer;
+                    rental.RentalSettlement.OwnerTotalAmount = usedAmountOwner;
+                    rental.RentalSettlement.SalesCommission = commissionForUsedDays;
+                    rental.RentalSettlement.CalculatedAt = DateTime.Now;
+
+                    // Update Sales records
                     foreach (var item in res)
                     {
-                        if (item.SalesRepresentative == null) return ApiResponse<string>.Failure("Sales not found!");
+                        if (item.SalesRepresentative == null) continue;
                         item.CommissionAmount = (item.CommissionPercentage / 100m) * commissionForUsedDays;
                     }
-                    rental.status = RentalStatus.EarlyCheckout;
                     
-
-                }
-                else
-                {
-                    foreach (var item in res)
-                    {
-                        if (item.SalesRepresentative == null) return ApiResponse<string>.Failure("Sales not found!");
-
-                        item.CommissionAmount = (item.CommissionPercentage / 100m) * commissionForUsedDays;
-                    }
                     rental.status = RentalStatus.EarlyCheckout;
-
+                    rental.CancellationReason = cancellationReason;
                 }
             }
             await _context.SaveChangesAsync();

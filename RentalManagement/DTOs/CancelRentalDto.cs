@@ -7,6 +7,6 @@ namespace RentalManagement.DTOs
     {
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public RentalStatus Status { get; set; }
-
+        public string? CancellationReason { get; set; }
     }
 }

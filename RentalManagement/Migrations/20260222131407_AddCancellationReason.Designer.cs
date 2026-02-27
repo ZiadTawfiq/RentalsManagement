@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RentalManagement;
 
@@ -11,9 +12,11 @@ using RentalManagement;
 namespace RentalManagement.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260222131407_AddCancellationReason")]
+    partial class AddCancellationReason
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,9 +169,6 @@ namespace RentalManagement.Migrations
                     b.Property<string>("CancellationReason")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly?>("CheckoutDate")
-                        .HasColumnType("date");
-
                     b.Property<decimal>("CustomerDeposit")
                         .HasColumnType("decimal(18,2)");
 
@@ -319,7 +319,7 @@ namespace RentalManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Campains");
+                    b.ToTable("Campain");
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.Owner", b =>

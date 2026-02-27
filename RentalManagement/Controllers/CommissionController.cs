@@ -28,13 +28,12 @@ namespace RentalManagement.Controllers
         public async Task<IActionResult> GetCampaignCommission()
         {
             var result =
-                await _commissionService.GetCampainCommission();
+                await _commissionService.GetCampaignCommission();
 
             return Ok(result);
         }
-        [HttpGet("filter")]
+        [HttpPost("filter")]
         [Authorize(Roles = "Admin,Accountant")]
-
         public async Task<IActionResult> FilterCommission([FromBody] CommissionFilterDto dto)
         {
             var result = await _commissionService.FilterCommission(dto);

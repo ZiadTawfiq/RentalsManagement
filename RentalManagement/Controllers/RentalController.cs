@@ -118,7 +118,7 @@ namespace RentalManagement.Controllers
         [Authorize(Roles = "Accountant,Admin,Operation")]
         public async Task<IActionResult> CancelRental([FromRoute] int rentalId,[FromBody]CancelRentalDto dto)
         {
-            var result = await _rentalService.CancelRental(rentalId,dto.Status);
+            var result = await _rentalService.CancelRental(rentalId, dto.Status, dto.CancellationReason);
 
             if (!result.IsSuccess)
                 return BadRequest(result);

@@ -145,9 +145,16 @@ export default function Employees() {
 
     const onSubmit = async (data) => {
         try {
+            // react-hook-form returns a string when only 1 checkbox selected, normalize to array
+            const roles = Array.isArray(data.roles)
+                ? data.roles
+                : data.roles
+                    ? [data.roles]
+                    : [];
+
             const payload = {
                 ...data,
-                roles: data.roles,
+                roles,
                 propertyId: parseInt(data.propertyId)
             };
             const response = await api.post('auth/signup', payload);
@@ -158,7 +165,13 @@ export default function Employees() {
                 alert('Failed to register: ' + (response.data.message || 'Unknown error'));
             }
         } catch (err) {
-            alert('Error registering employee: ' + (err.response?.data?.message || err.message));
+            const data = err.response?.data;
+            if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                const details = data.errors.map(e => `${e.field}: ${e.errors?.join(', ')}`).join('\n');
+                alert('Validation errors:\n' + details);
+            } else {
+                alert('Error: ' + (data?.message || err.message));
+            }
         }
     };
 
@@ -433,7 +446,10 @@ export default function Employees() {
                                 <label className="label-base">Unique Username</label>
                                 <input
                                     type="text"
-                                    {...register('userName', { required: 'Username is required' })}
+                                    {...register('userName', {
+                                        required: 'Username is required',
+                                        minLength: { value: 3, message: 'Username must be at least 3 characters' }
+                                    })}
                                     className="input-base"
                                     placeholder="e.g. jdoe_admin"
                                 />

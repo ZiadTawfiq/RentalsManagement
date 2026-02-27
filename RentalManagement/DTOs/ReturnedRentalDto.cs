@@ -1,4 +1,6 @@
 ﻿using RentalManagement.Controllers;
+using RentalManagement.Entities;
+using System.Text.Json.Serialization;
 
 namespace RentalManagement.DTOs
 {
@@ -11,9 +13,11 @@ namespace RentalManagement.DTOs
         public string OwnerName { get; set; }
         public int PropertyId { get; set; }
         public string PropertyName { get; set; }
+        public string OwnerPhoneNumber { get; set; }
 
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
+        public DateOnly? CheckoutDate { get; set; }
 
         public decimal DayPriceCustomer { get; set; }
         public decimal DayPriceOwner { get; set; }
@@ -28,10 +32,16 @@ namespace RentalManagement.DTOs
         public decimal OwnerRemaining { get; set; }
 
         public bool HasCampaignDiscount { get; set; }
+        public int? CampainId { get; set; }
+        public decimal? CampainMoney { get; set; }
 
         public string CustomerFullName { get; set; }
         public string CustomerPhoneNumber { get; set; }
         public decimal TotalCommision { get; set; }
+
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public RentalStatus Status { get; set; }
+        public string? CancellationReason { get; set; }
 
         public List<ReturnedRentalSalesDto> Sales { get; set; }
         public List<ReturnedRentalNoteDto> RentalNotes { get; set; } = new List<ReturnedRentalNoteDto>();

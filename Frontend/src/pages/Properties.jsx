@@ -13,6 +13,7 @@ export default function Properties() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProperty, setEditingProperty] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [deleteError, setDeleteError] = useState(null);
 
     const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
@@ -51,19 +52,24 @@ export default function Properties() {
                 }
             }
         } catch (err) {
-            alert('Error saving property: ' + err.message);
+            const msg = err.response?.data?.message || err.response?.data?.title || err.message;
+            alert(msg || 'Error saving property');
         }
     };
 
     const handleDelete = async (id) => {
+        setDeleteError(null);
         if (window.confirm('Are you sure you want to delete this property?')) {
             try {
                 const response = await api.delete(`Property/${id}`);
                 if (response.data.isSuccess) {
                     fetchProperties();
+                } else {
+                    setDeleteError(response.data.message || 'Failed to delete property');
                 }
             } catch (err) {
-                alert('Error deleting property: ' + err.message);
+                const msg = err.response?.data?.message || err.response?.data?.title || err.message;
+                setDeleteError(msg);
             }
         }
     };
@@ -117,6 +123,26 @@ export default function Properties() {
                     Showing {filteredProperties.length} of {properties.length} properties
                 </div>
             </div>
+
+            {deleteError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                            <IoTrash size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-red-900">Deletion Restricted</h3>
+                            <p className="text-xs text-red-700 mt-0.5">{deleteError}</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setDeleteError(null)}
+                        className="p-2 hover:bg-red-100 rounded-lg text-red-400 transition-colors"
+                    >
+                        <IoAdd size={20} className="rotate-45" />
+                    </button>
+                </div>
+            )}
 
             <div className="card overflow-hidden">
                 <table className="min-w-full">

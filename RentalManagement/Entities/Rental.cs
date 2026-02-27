@@ -8,6 +8,7 @@ public class Rental
     // Dates
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
+    public DateOnly? CheckoutDate { get; set; }
 
     // Prices snapshot
     public decimal DayPriceCustomer { get; set; }
@@ -44,6 +45,7 @@ public class Rental
     public RentalSettlement RentalSettlement { get; set; }
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public RentalStatus status { get; set;  }
+    public string? CancellationReason { get; set; }
     public int? campainId { get; set;  }
     public Campain? campain { get; set; }
 

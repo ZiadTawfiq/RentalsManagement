@@ -1,51 +1,156 @@
-import { Outlet, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    IoGridOutline, IoBusinessOutline, IoKeyOutline, IoPersonOutline,
+    IoReceiptOutline, IoPeopleOutline, IoStatsChartOutline, IoMegaphoneOutline,
+    IoLogOutOutline, IoMenuOutline, IoChevronBackOutline
+} from 'react-icons/io5';
+import logo from '../assets/logo.png';
 
 export default function Layout() {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const location = useLocation();
+
+    const navItems = [
+        { path: '/', label: 'Dashboard', icon: <IoGridOutline />, category: null },
+        { path: '/properties', label: 'Properties', icon: <IoBusinessOutline />, category: 'Management' },
+        { path: '/units', label: 'Units', icon: <IoKeyOutline />, category: 'Management' },
+        { path: '/owners', label: 'Owners', icon: <IoPersonOutline />, category: 'Management' },
+        { path: '/rentals', label: 'Rentals', icon: <IoReceiptOutline />, category: 'Management' },
+        { path: '/employees', label: 'Employees', icon: <IoPeopleOutline />, category: 'Admin' },
+        { path: '/commission', label: 'Commissions', icon: <IoStatsChartOutline />, category: 'Admin' },
+        { path: '/campaigns', label: 'Campaigns', icon: <IoMegaphoneOutline />, category: 'Admin' },
+    ];
+
+    const handleSignOut = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    };
+
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-gray-50 overflow-hidden transition-colors duration-300">
             {/* Sidebar */}
-            <aside className="w-64 bg-white shadow-md flex flex-col">
-                <div className="p-4 border-b flex items-center justify-center">
-                    <h1 className="text-2xl font-bold text-blue-600">Rental Manager</h1>
+            <motion.aside
+                initial={false}
+                animate={{ width: isCollapsed ? 80 : 280 }}
+                className="bg-white shadow-xl flex flex-col z-20 relative border-r border-gray-100 transition-colors duration-300"
+            >
+                {/* Logo Section */}
+                <div className="p-6 flex items-center justify-between border-b">
+                    <AnimatePresence mode="wait">
+                        {!isCollapsed ? (
+                            <motion.div
+                                key="full"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                className="flex items-center gap-3 overflow-hidden"
+                            >
+                                <img src={logo} alt="TourMove" className="w-10 h-10 object-contain" />
+                                <span className="text-xl font-black text-blue-600 whitespace-nowrap">TourMove</span>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="collapsed"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="mx-auto"
+                            >
+                                <img src={logo} alt="TourMove" className="w-10 h-10 object-contain" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    <Link to="/" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Dashboard
-                    </Link>
-                    <div className="pt-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Management</div>
-                    <Link to="/properties" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Properties
-                    </Link>
-                    <Link to="/units" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Units
-                    </Link>
-                    <Link to="/owners" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Owners
-                    </Link>
-                    <Link to="/rentals" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Rentals
-                    </Link>
-                    <div className="pt-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</div>
-                    <Link to="/employees" className="flex items-center gap-3 p-3 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-700 transition-colors">
-                        Employees
-                    </Link>
+
+                {/* Navigation */}
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+                    {navItems.map((item, idx) => {
+                        const isActive = location.pathname === item.path;
+                        const showCategory = item.category && (idx === 0 || navItems[idx - 1].category !== item.category);
+
+                        return (
+                            <div key={item.path}>
+                                {showCategory && !isCollapsed && (
+                                    <div className="pt-4 pb-2 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                        {item.category}
+                                    </div>
+                                )}
+                                <Link
+                                    to={item.path}
+                                    className={`flex items-center gap-3 p-3.5 rounded-xl transition-all relative group ${isActive
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                        : 'text-gray-500 hover:bg-gray-100 hover:text-blue-600'
+                                        }`}
+                                >
+                                    <span className={`text-xl ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-6'} transition-transform`}>
+                                        {item.icon}
+                                    </span>
+                                    <AnimatePresence>
+                                        {!isCollapsed && (
+                                            <motion.span
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                className="font-bold text-sm whitespace-nowrap"
+                                            >
+                                                {item.label}
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {isCollapsed && (
+                                        <div className="absolute left-full ml-4 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-xl">
+                                            {item.label}
+                                        </div>
+                                    )}
+                                </Link>
+                            </div>
+                        );
+                    })}
                 </nav>
-                <div className="p-4 border-t">
+
+                {/* Footer Actions */}
+                <div className="p-4 border-t space-y-2">
+                    {/* Sign Out */}
                     <button
-                        onClick={() => {
-                            localStorage.removeItem('token');
-                            window.location.href = '/login';
-                        }}
-                        className="flex items-center justify-center w-full gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={handleSignOut}
+                        className="flex items-center gap-4 w-full p-3.5 rounded-xl text-red-500 hover:bg-red-50 transition-all font-bold text-sm"
+                        title="Sign Out"
                     >
-                        Sign Out
+                        <span className="text-xl"><IoLogOutOutline /></span>
+                        {!isCollapsed && <span>Sign Out</span>}
+                    </button>
+
+                    {/* Collapse Button */}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="hidden md:flex flex-col items-center justify-center w-full p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                    >
+                        {isCollapsed ? <IoMenuOutline size={20} /> : <IoChevronBackOutline size={20} />}
                     </button>
                 </div>
-            </aside>
+            </motion.aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto bg-gray-50">
-                <div className="p-8">
+            <main className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden transition-colors duration-300">
+                {/* Header / Navbar */}
+                <header className="h-20 border-b border-gray-100 bg-white shadow-sm flex items-center justify-between px-8 z-10 transition-colors duration-300">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="p-2.5 bg-gray-50 rounded-xl text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95"
+                        >
+                            <IoMenuOutline size={24} />
+                        </button>
+                        <h2 className="text-lg font-black text-gray-800 truncate">
+                            {navItems.find(i => i.path === location.pathname)?.label || 'Overview'}
+                        </h2>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-auto custom-scrollbar p-8">
                     <Outlet />
                 </div>
             </main>

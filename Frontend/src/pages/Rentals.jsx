@@ -1,7 +1,6 @@
-
 import { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { IoAdd, IoPencil, IoTrash, IoPerson, IoBusiness, IoTime, IoWallet, IoDocumentText, IoFunnel } from "react-icons/io5";
+import { IoAdd, IoPencil, IoTrash, IoPerson, IoBusiness, IoTime, IoWallet, IoDocumentText, IoFunnel, IoClose, IoCheckmark, IoBan } from "react-icons/io5";
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import SearchBar from '../components/SearchBar';
@@ -20,12 +19,26 @@ export default function Rentals() {
     const [editingRental, setEditingRental] = useState(null);
     const [newNote, setNewNote] = useState('');
     const [submittingNote, setSubmittingNote] = useState(false);
+    const [campaigns, setCampaigns] = useState([]);
+    const [campaignError, setCampaignError] = useState(null);
+
+    // Cancel dialog state
+    const [cancelDialog, setCancelDialog] = useState(null); // { rentalId, rentalName }
+    const [cancelStatus, setCancelStatus] = useState('Cancelled'); // 'Cancelled' | 'EarlyCheckout'
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelLoading, setCancelLoading] = useState(false);
+
+    // Confirm (complete) dialog state
+    const [confirmDialog, setConfirmDialog] = useState(null); // { rentalId, rentalName }
+    const [confirmLoading, setConfirmLoading] = useState(false);
 
     // Search and Filter states
     const [searchTerm, setSearchTerm] = useState('');
     const [filterProperty, setFilterProperty] = useState('');
     const [filterOwner, setFilterOwner] = useState('');
     const [filterSalesRep, setFilterSalesRep] = useState('');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
     const [showFilters, setShowFilters] = useState(false);
 
     const { register, control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
@@ -58,15 +71,21 @@ export default function Rentals() {
 
     const fetchData = async () => {
         try {
-            const [rentalsRes, unitsRes, employeesRes] = await Promise.all([
+            const [rentalsRes, unitsRes, employeesRes, campaignsRes] = await Promise.all([
                 api.get('Rental'),
                 api.get('Unit'),
-                api.get('Employee')
+                api.get('Employee'),
+                api.get('Campain')
             ]);
+
+            if (campaignsRes.data.isSuccess) {
+                setCampaigns(campaignsRes.data.data || []);
+            }
+            if (unitsRes.data.isSuccess) setUnits(unitsRes.data.data);
+            if (employeesRes.data.isSuccess) setEmployees(employeesRes.data.data);
 
             if (rentalsRes.data.isSuccess) {
                 const normalized = rentalsRes.data.data.map(r => {
-                    // Be extremely robust with IDs
                     const id = [r.id, r.Id, r.rentalId, r.RentalId].find(val => val !== undefined && val !== null);
                     return {
                         ...r,
@@ -88,15 +107,19 @@ export default function Rentals() {
                         customerPhoneNumber: r.customerPhoneNumber || r.CustomerPhoneNumber,
                         totalDays: r.totalAmount !== undefined ? r.totalAmount / (r.dayPriceCustomer || 1) : (r.TotalAmount / (r.DayPriceCustomer || 1) || r.TotalDays || r.totalDays),
                         totalAmount: r.totalAmount || r.TotalAmount,
-                        totalCommision: r.totalCommision || r.TotalCommision,
+                        totalCommision: r.totalCommision || r.TotalCommision || 0,
+                        campainMoney: r.campainMoney || r.CampainMoney || 0,
+                        checkoutDate: r.checkoutDate || r.CheckoutDate,
                         sales: r.sales || r.Sales || [],
                         rentalNotes: r.rentalNotes || r.RentalNotes || [],
                         lastNote: r.lastNote || r.LastNote,
+                        campainId: r.campainId || r.CampainId,
+                        hasCampaignDiscount: r.hasCampaignDiscount || r.HasCampaignDiscount,
                         customerOutstanding: r.customerOutstanding || r.CustomerOutstanding || 0,
                         ownerRemaining: r.ownerRemaining || r.OwnerRemaining || 0
                     };
                 });
-                // Manually fix totalDays if backend missed it
+
                 const finalData = normalized.map(r => {
                     if (!r.totalDays || r.totalDays === 0) {
                         try {
@@ -104,16 +127,13 @@ export default function Rentals() {
                             const end = new Date(r.endDate);
                             const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
                             r.totalDays = diff > 0 ? diff : 0;
-                            r.totalAmount = r.totalAmount || (r.totalDays * r.dayPriceCustomer);
-                        } catch (e) { /* ignore */ }
+                            r.totalAmount = r.totalAmount || (r.totalDays * (r.dayPriceCustomer || 0));
+                        } catch (e) { }
                     }
                     return r;
                 });
                 setRentals(finalData);
             }
-            if (unitsRes.data.isSuccess) setUnits(unitsRes.data.data);
-            if (employeesRes.data.isSuccess) setEmployees(employeesRes.data.data);
-
         } catch (err) {
             setError('Error loading data: ' + err.message);
         } finally {
@@ -124,6 +144,13 @@ export default function Rentals() {
     const onSubmit = async (data) => {
         try {
             const salesList = (data.sales || []).filter(s => s.salesRepresentitiveId);
+
+            if ((data.hasCampaignDiscount === 'true' || data.hasCampaignDiscount === true) && !data.campainId) {
+                setCampaignError("Please select a Campaign Source.");
+                return;
+            }
+            setCampaignError(null);
+
             const totalCommission = salesList.reduce((sum, s) => sum + (parseFloat(s.commissionPercentage) || 0), 0);
             if (totalCommission > 100) {
                 alert(`Error: Total commission cannot exceed 100%. Current total: ${totalCommission}%`);
@@ -143,6 +170,9 @@ export default function Rentals() {
                 ownerDeposit: parseFloat(data.ownerDeposit) || 0,
                 securityDeposit: parseFloat(data.securityDeposit) || 0,
                 hasCampaignDiscount: data.hasCampaignDiscount === 'true' || data.hasCampaignDiscount === true,
+                campainId: (data.hasCampaignDiscount === 'true' || data.hasCampaignDiscount === true)
+                    ? (parseInt(data.campainId) || null)
+                    : null,
                 customerFullName: data.customerFullName || '',
                 customerPhoneNumber: data.customerPhoneNumber || '',
                 // Strip the internal `id` field added by useFieldArray
@@ -197,6 +227,55 @@ export default function Rentals() {
         }
     };
 
+    const handleOpenCancelDialog = (rental) => {
+        setCancelDialog({ rentalId: rental.id, rentalName: rental.customerFullName || rental.unitCode });
+        setCancelStatus('Cancelled');
+        setCancelReason('');
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!cancelDialog) return;
+        setCancelLoading(true);
+        try {
+            const res = await api.put(`Rental/${cancelDialog.rentalId}/Cancel`, {
+                status: cancelStatus,
+                cancellationReason: cancelReason.trim() || null
+            });
+            if (res.data.isSuccess) {
+                setCancelDialog(null);
+                await fetchData();
+            } else {
+                alert('Failed: ' + (res.data.message || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error cancelling rental: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setCancelLoading(false);
+        }
+    };
+
+    const handleConfirmRental = (rental) => {
+        setConfirmDialog({ rentalId: rental.id, rentalName: rental.customerFullName || rental.unitCode });
+    };
+
+    const handleDoConfirm = async () => {
+        if (!confirmDialog) return;
+        setConfirmLoading(true);
+        try {
+            const res = await api.put(`Rental/${confirmDialog.rentalId}/complete`);
+            if (res.data.isSuccess) {
+                setConfirmDialog(null);
+                await fetchData();
+            } else {
+                alert('Failed: ' + (res.data.message || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error completing rental: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setConfirmLoading(false);
+        }
+    };
+
     const handleAddNote = async (rentalId) => {
         if (!newNote.trim()) return;
         setSubmittingNote(true);
@@ -241,6 +320,7 @@ export default function Rentals() {
                 ownerRemaining: rental.ownerRemaining,
                 securityDeposit: rental.securityDeposit,
                 hasCampaignDiscount: rental.hasCampaignDiscount?.toString(),
+                campainId: rental.campainId ? rental.campainId.toString() : '',
                 customerFullName: rental.customerFullName,
                 customerPhoneNumber: rental.customerPhoneNumber,
                 sales: (rental.sales || []).map(s => {
@@ -294,9 +374,13 @@ export default function Rentals() {
             // Sales Rep filter
             const matchesSalesRep = !filterSalesRep || rental.sales?.some(s => (s.salesRepresentativeId || s.salesRepresentitiveId || s.salesRepId) === filterSalesRep);
 
-            return matchesSearch && matchesProperty && matchesOwner && matchesSalesRep;
+            // Date filters (Specific match for Start and End dates)
+            const matchesStartDate = !filterStartDate || rental.startDate === filterStartDate;
+            const matchesEndDate = !filterEndDate || rental.endDate === filterEndDate;
+
+            return matchesSearch && matchesProperty && matchesOwner && matchesSalesRep && matchesStartDate && matchesEndDate;
         });
-    }, [rentals, searchTerm, filterProperty, filterOwner, filterSalesRep]);
+    }, [rentals, searchTerm, filterProperty, filterOwner, filterSalesRep, filterStartDate, filterEndDate]);
 
     // Get unique properties and owners for filter dropdowns
     const uniqueProperties = useMemo(() => {
@@ -344,16 +428,16 @@ export default function Rentals() {
                     />
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${showFilters || filterProperty || filterOwner || filterSalesRep
+                        className={`px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${showFilters || filterProperty || filterOwner || filterSalesRep || filterStartDate || filterEndDate
                             ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         <IoFunnel size={18} />
                         Filters
-                        {(filterProperty || filterOwner || filterSalesRep) && (
+                        {(filterProperty || filterOwner || filterSalesRep || filterStartDate || filterEndDate) && (
                             <span className="bg-white text-blue-600 px-2 py-0.5 rounded-full text-xs font-black">
-                                {[filterProperty, filterOwner, filterSalesRep].filter(Boolean).length}
+                                {[filterProperty, filterOwner, filterSalesRep, filterStartDate, filterEndDate].filter(Boolean).length}
                             </span>
                         )}
                     </button>
@@ -364,45 +448,33 @@ export default function Rentals() {
                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Property</label>
-                                <select
+                                <SearchableSelect
+                                    label="Property"
+                                    placeholder="All Properties"
+                                    options={uniqueProperties.map(prop => ({ id: prop.id, label: prop.name, sublabel: 'Property' }))}
                                     value={filterProperty}
-                                    onChange={(e) => setFilterProperty(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">All Properties</option>
-                                    {uniqueProperties.map(prop => (
-                                        <option key={prop.id} value={prop.id}>{prop.name}</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFilterProperty(val)}
+                                />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Owner</label>
-                                <select
+                                <SearchableSelect
+                                    label="Owner"
+                                    placeholder="All Owners"
+                                    options={uniqueOwners.map(owner => ({ id: owner.id, label: owner.name, sublabel: 'Owner' }))}
                                     value={filterOwner}
-                                    onChange={(e) => setFilterOwner(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">All Owners</option>
-                                    {uniqueOwners.map(owner => (
-                                        <option key={owner.id} value={owner.id}>{owner.name}</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFilterOwner(val)}
+                                />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Sales Representative</label>
-                                <select
+                                <SearchableSelect
+                                    label="Sales Representative"
+                                    placeholder="All Agents"
+                                    options={employees.map(emp => ({ id: emp.id, label: emp.userName, sublabel: 'Agent' }))}
                                     value={filterSalesRep}
-                                    onChange={(e) => setFilterSalesRep(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">All Agents</option>
-                                    {employees.map(emp => (
-                                        <option key={emp.id} value={emp.id}>{emp.userName}</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFilterSalesRep(val)}
+                                />
                             </div>
 
                             <div className="flex items-end">
@@ -411,11 +483,34 @@ export default function Rentals() {
                                         setFilterProperty('');
                                         setFilterOwner('');
                                         setFilterSalesRep('');
+                                        setFilterStartDate('');
+                                        setFilterEndDate('');
                                     }}
                                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-300 transition-colors w-full"
                                 >
                                     Clear Filters
                                 </button>
+                            </div>
+                        </div>
+                        {/* Date Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Start Date</label>
+                                <input
+                                    type="date"
+                                    value={filterStartDate}
+                                    onChange={(e) => setFilterStartDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">End Date</label>
+                                <input
+                                    type="date"
+                                    value={filterEndDate}
+                                    onChange={(e) => setFilterEndDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
                             </div>
                         </div>
                     </div>
@@ -432,6 +527,7 @@ export default function Rentals() {
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-100">
                             <th className="table-header">Lease Assignment</th>
+                            <th className="table-header">Status</th>
                             <th className="table-header">Tenant Information</th>
                             <th className="table-header">Assigned Agents</th>
                             <th className="table-header">Lease Economics</th>
@@ -449,113 +545,174 @@ export default function Rentals() {
                                 </td>
                             </tr>
                         ) : (
-                            filteredRentals.map((rental) => (
-                                <tr key={rental.id} className="table-row">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                                                <IoBusiness size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-black text-gray-900">{rental.unitCode}</div>
-                                                <div className="text-[11px] font-bold text-blue-500 uppercase tracking-tight">{rental.propertyName}</div>
-                                                <div className="flex items-center gap-1.5 mt-1">
-                                                    <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black">
-                                                        {rental.startDate} → {rental.endDate}
-                                                    </span>
+                            filteredRentals.map((rental) => {
+                                const today = new Date().toISOString().split('T')[0];
+                                const endDate = rental.endDate ? String(rental.endDate) : '';
+                                const isToday = endDate === today;
+                                const isActive = (rental.status || '').toLowerCase() === 'active';
+
+                                // Status badge config
+                                const statusConfig = {
+                                    Active: { label: 'Active', cls: 'bg-green-50 text-green-700 border border-green-200' },
+                                    Completed: { label: 'Completed', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+                                    Cancelled: { label: 'Cancelled', cls: 'bg-red-50 text-red-700 border border-red-200' },
+                                    EarlyCheckout: { label: 'Early Checkout', cls: 'bg-orange-50 text-orange-700 border border-orange-200' },
+                                };
+                                const status = rental.status || 'Active';
+                                const badge = statusConfig[status] || { label: status, cls: 'bg-gray-50 text-gray-600 border border-gray-200' };
+
+                                return (
+                                    <tr key={rental.id} className="table-row">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                                    <IoBusiness size={20} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-black text-gray-900">{rental.unitCode}</div>
+                                                    <div className="text-[11px] font-bold text-blue-500 uppercase tracking-tight">{rental.propertyName}</div>
+                                                    <div className="flex flex-col gap-0.5 mt-1">
+                                                        <div className="text-[10px] font-black text-gray-700">Owner: {rental.ownerName || 'N/A'}</div>
+                                                        <div className="text-[9px] font-bold text-gray-400">{rental.ownerPhoneNumber || 'N/A'}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black">
+                                                            {rental.startDate} → {rental.endDate}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="text-sm font-black text-gray-800 flex items-center gap-1.5">
-                                                <IoPerson size={14} className="text-gray-400" />
-                                                {rental.customerFullName}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${badge.cls}`}>
+                                                    {badge.label}
+                                                </span>
+                                                {rental.checkoutDate && (
+                                                    <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-black text-center">
+                                                        Out: {rental.checkoutDate}
+                                                    </span>
+                                                )}
+                                                {rental.cancellationReason && (
+                                                    <span className="text-[9px] text-gray-400 italic truncate max-w-[100px]" title={rental.cancellationReason}>
+                                                        {rental.cancellationReason}
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="text-[11px] text-gray-500 font-medium">{rental.customerPhoneNumber}</div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-2">
-                                            {(rental.sales || []).map((s, idx) => (
-                                                <div key={idx} className="flex flex-col">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1 h-1 rounded-full bg-indigo-400" />
-                                                        <div className="text-[11px] font-black text-gray-700 truncate max-w-[120px]">
-                                                            {s.salesRepName || s.SalesRepName || 'Agent'}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+                                                    <IoPerson size={14} className="text-gray-400" />
+                                                    {rental.customerFullName}
+                                                </div>
+                                                <div className="text-[11px] text-gray-500 font-medium">{rental.customerPhoneNumber}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-2">
+                                                {(rental.sales || []).map((s, idx) => (
+                                                    <div key={idx} className="flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1 h-1 rounded-full bg-indigo-400" />
+                                                            <div className="text-[11px] font-black text-gray-700 truncate max-w-[120px]">
+                                                                {s.salesRepName || s.SalesRepName || 'Agent'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 ml-3">
+                                                            <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-1 rounded uppercase">
+                                                                {s.percentage || s.Percentage}%
+                                                            </span>
+                                                            <span className="text-[9px] font-bold text-gray-400">
+                                                                ${(Number(s.commissionAmount || s.CommissionAmount || 0)).toLocaleString()}
+                                                            </span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 ml-3">
-                                                        <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-1 rounded uppercase">
-                                                            {s.percentage || s.Percentage}%
-                                                        </span>
-                                                        <span className="text-[9px] font-bold text-gray-400">
-                                                            ${(Number(s.commissionAmount || s.CommissionAmount || 0)).toLocaleString()}
-                                                        </span>
+                                                ))}
+                                                {!rental.sales?.length && <span className="text-[10px] text-gray-300 italic">No agents.</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-green-600 bg-green-50 px-1 rounded uppercase tracking-tighter">In</span>
+                                                    <span className="text-xs font-black text-gray-700">${Number(rental.dayPriceCustomer || 0).toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-1 rounded uppercase tracking-tighter">Out</span>
+                                                    <span className="text-[11px] font-black text-gray-400">${Number(rental.dayPriceOwner || 0).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="text-sm font-black text-blue-600">
+                                                    ${(Number(rental.totalAmount) || 0).toLocaleString()}
+                                                </div>
+                                                <div className="text-[10px] font-black text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-block">
+                                                    Total Comm: ${(Number(rental.totalCommision || 0) + Number(rental.campainMoney || 0)).toLocaleString()}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                        {(Number(rental.totalDays) || 0)} Days Total
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5 mt-1 border-t border-blue-50 pt-1">
+                                                    <div className="flex items-center justify-between text-[9px] font-black">
+                                                        <span className="text-blue-400 uppercase">Cust Bal:</span>
+                                                        <span className="text-gray-700">${Number(rental.customerOutstanding || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[9px] font-black">
+                                                        <span className="text-orange-400 uppercase">Ownr Bal:</span>
+                                                        <span className="text-gray-700">${Number(rental.ownerRemaining || 0).toLocaleString()}</span>
                                                     </div>
                                                 </div>
-                                            ))}
-                                            {!rental.sales?.length && <span className="text-[10px] text-gray-300 italic">No agents.</span>}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-green-600 bg-green-50 px-1 rounded uppercase tracking-tighter">In</span>
-                                                <span className="text-xs font-black text-gray-700">${Number(rental.dayPriceCustomer || 0).toLocaleString()}</span>
+                                                {rental.lastNote && (
+                                                    <div className="text-[10px] text-gray-400 italic truncate max-w-[150px] mt-1" title={rental.lastNote}>
+                                                        "{rental.lastNote}"
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-1 rounded uppercase tracking-tighter">Out</span>
-                                                <span className="text-[11px] font-black text-gray-400">${Number(rental.dayPriceOwner || 0).toLocaleString()}</span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-1.5 flex-wrap">
+                                                <button
+                                                    onClick={() => openModal(rental)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-95"
+                                                    title="Edit"
+                                                >
+                                                    <IoPencil size={18} />
+                                                </button>
+                                                {isActive && (
+                                                    <button
+                                                        onClick={() => handleConfirmRental(rental)}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-95"
+                                                        title="Confirm / Complete"
+                                                    >
+                                                        <IoCheckmark size={18} />
+                                                    </button>
+                                                )}
+                                                {isActive && (
+                                                    <button
+                                                        onClick={() => handleOpenCancelDialog(rental)}
+                                                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all active:scale-95"
+                                                        title="Cancel rental"
+                                                    >
+                                                        <IoBan size={18} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDelete(rental)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
+                                                    title="Delete"
+                                                >
+                                                    <IoTrash size={18} />
+                                                </button>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="text-sm font-black text-blue-600">
-                                                ${(Number(rental.totalAmount) || 0).toLocaleString()}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                    {(Number(rental.totalDays) || 0)} Days Total
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-col gap-0.5 mt-1 border-t border-blue-50 pt-1">
-                                                <div className="flex items-center justify-between text-[9px] font-black">
-                                                    <span className="text-blue-400 uppercase">Cust Bal:</span>
-                                                    <span className="text-gray-700">${Number(rental.customerOutstanding || 0).toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-[9px] font-black">
-                                                    <span className="text-orange-400 uppercase">Ownr Bal:</span>
-                                                    <span className="text-gray-700">${Number(rental.ownerRemaining || 0).toLocaleString()}</span>
-                                                </div>
-                                            </div>
-                                            {rental.lastNote && (
-                                                <div className="text-[10px] text-gray-400 italic truncate max-w-[150px] mt-1" title={rental.lastNote}>
-                                                    "{rental.lastNote}"
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => openModal(rental)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-95"
-                                            >
-                                                <IoPencil size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(rental)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
-                                            >
-                                                <IoTrash size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
@@ -595,11 +752,52 @@ export default function Rentals() {
 
                             <div className="col-span-2 sm:col-span-1">
                                 <label className="label-base">Promotional Campaign</label>
-                                <select {...register('hasCampaignDiscount')} className="input-base">
+                                <select
+                                    {...register('hasCampaignDiscount')}
+                                    className={`input-base ${campaignError ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                                    onChange={(e) => {
+                                        register('hasCampaignDiscount').onChange(e);
+                                        if (e.target.value === 'false') setCampaignError(null);
+                                    }}
+                                >
                                     <option value="false">Standard Rates</option>
                                     <option value="true">Active Promotion Applied</option>
                                 </select>
                             </div>
+
+                            {/* Campaign Source — shown only when campaign is active */}
+                            {(watch('hasCampaignDiscount') === 'true' || watch('hasCampaignDiscount') === true) && (
+                                <div className="col-span-2">
+                                    <label className="label-base">Campaign Source</label>
+                                    {campaigns.length > 0 ? (
+                                        <>
+                                            <select
+                                                {...register('campainId')}
+                                                className={`input-base ${campaignError ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                                                onChange={(e) => {
+                                                    register('campainId').onChange(e);
+                                                    if (e.target.value) setCampaignError(null);
+                                                }}
+                                            >
+                                                <option value="">Select campaign source...</option>
+                                                {campaigns.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.type}</option>
+                                                ))}
+                                            </select>
+                                            {campaignError && (
+                                                <p className="mt-2 text-xs text-red-600 font-black flex items-center gap-1.5 animate-bounce">
+                                                    <span>⚠️</span> {campaignError}
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="input-base text-gray-400 text-sm flex items-center gap-2">
+                                            <span>⚠️</span>
+                                            No campaigns configured. Add campaign types (e.g. Facebook, WhatsApp) in the database.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -962,6 +1160,115 @@ export default function Rentals() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Cancel Dialog */}
+            {cancelDialog && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                                <IoBan size={20} className="text-orange-500" />
+                                Cancel Rental
+                            </h3>
+                            <button onClick={() => setCancelDialog(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                                <IoClose size={18} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-5">
+                            You are about to cancel the rental for <span className="font-bold text-gray-800">{cancelDialog.rentalName}</span>. This action will adjust commissions accordingly.
+                        </p>
+
+                        <div className="mb-4">
+                            <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Cancellation Type</label>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setCancelStatus('Cancelled')}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${cancelStatus === 'Cancelled'
+                                        ? 'border-red-500 bg-red-50 text-red-700'
+                                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                        }`}
+                                >
+                                    Full Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCancelStatus('EarlyCheckout')}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${cancelStatus === 'EarlyCheckout'
+                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                        }`}
+                                >
+                                    Early Checkout
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mb-5">
+                            <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Reason / Comment <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+                            <textarea
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                                placeholder="Enter reason for cancellation..."
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setCancelDialog(null)}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={handleConfirmCancel}
+                                disabled={cancelLoading}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-60 ${cancelStatus === 'EarlyCheckout' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-red-500 hover:bg-red-600'
+                                    }`}
+                            >
+                                {cancelLoading ? 'Processing...' : `Confirm ${cancelStatus === 'EarlyCheckout' ? 'Early Checkout' : 'Cancellation'}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm (Complete) Dialog */}
+            {confirmDialog && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                                <IoCheckmark size={20} className="text-green-500" />
+                                Complete Rental
+                            </h3>
+                            <button onClick={() => setConfirmDialog(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                                <IoClose size={18} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-6">
+                            Mark the rental for <span className="font-bold text-gray-800">{confirmDialog.rentalName}</span> as <span className="font-bold text-green-700">Completed</span>? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmDialog(null)}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={handleDoConfirm}
+                                disabled={confirmLoading}
+                                className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-60"
+                            >
+                                {confirmLoading ? 'Processing...' : 'Confirm Completion'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -63,7 +63,8 @@ export default function Units() {
                 }
             }
         } catch (err) {
-            alert('Error saving unit: ' + err.message);
+            const msg = err.response?.data?.message || err.response?.data?.title || err.message;
+            alert(msg || 'Error saving unit');
         }
     };
 

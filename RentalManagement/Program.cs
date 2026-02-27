@@ -97,7 +97,9 @@ namespace RentalManagement
             builder.Services.AddScoped<IUnitService, UnitService>();
             builder.Services.AddScoped<IRentalService, RentalService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
-            builder.Services.AddScoped<ICommissionService, CommissionService>(); 
+            builder.Services.AddScoped<ICommissionService, CommissionService>();
+            builder.Services.AddScoped<ICacheService, InMeomoryCacheService>(); 
+         
 
             /* ===================== Mapping ===================== */
             builder.Services.AddAutoMapper(typeof(MappingProfile));
@@ -111,8 +113,6 @@ namespace RentalManagement
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssemblyContaining<OwnerDtoValidator>();
             var app = builder.Build();
-
-           
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

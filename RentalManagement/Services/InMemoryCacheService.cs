@@ -6,25 +6,23 @@ namespace RentalManagement.Services
     public class InMeomoryCacheService(IMemoryCache _memoryCache) : ICacheService
     {
 
-        public async Task<T> GetOrSet<T>(string k, Func<Task<T>> factory)
+        public async Task<T> GetOrSet<T>(string k, Func<Task<T>> factory,TimeSpan AbsExpiration)
         {
             if (!_memoryCache.TryGetValue(k , out T value))
             {
                 value = await factory();
 
                 var cacheEntryOptions = new MemoryCacheEntryOptions()
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(1))
-                    .SetAbsoluteExpiration(TimeSpan.FromHours(1))
-                    .SetPriority(CacheItemPriority.Normal);
+                    .SetAbsoluteExpiration(AbsExpiration);
 
                 _memoryCache.Set(k, value, cacheEntryOptions);
             }
             return value;
         }
 
-        public Task Remove(string k)
+        public void Remove(string k)
         {
-            throw new NotImplementedException();
+            _memoryCache.Remove(k);
         }
     }
 }

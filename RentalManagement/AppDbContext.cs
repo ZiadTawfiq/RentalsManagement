@@ -113,5 +113,6 @@ namespace RentalManagement
         public DbSet<Unit> Units { get; set; }
         public DbSet<Owner> Owners { get; set; }
         public DbSet<RentalManagement.JwtToken.RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Campain> Campains { get; set; }
     }
 }

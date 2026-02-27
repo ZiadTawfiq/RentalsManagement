@@ -8,14 +8,35 @@
     --color-brand-700: #1d4ed8;
 }
 
+/* Base Styles */
+:root {
+    --bg-main: #f9fafb;
+    --bg-card: #ffffff;
+    --bg-input: #f9fafb;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --text-very-muted: #9ca3af;
+    --border-main: #f3f4f6;
+    --border-input: #e5e7eb;
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #4b5563;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
 /* Global Styles */
 body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Global Transitions */
-* {
-    @apply transition-all duration-200;
+*,
+*::before,
+*::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Page Containers */
@@ -25,45 +46,64 @@ body {
 
 /* Card Styling */
 .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-main);
+    box-shadow: var(--shadow);
+    @apply rounded-2xl p-6;
 }
 
 /* Input Styling - Rectangular & Visible */
 .input-base {
-    @apply mt-1 block w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 shadow-sm placeholder-gray-400 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white focus:outline-none sm:text-sm transition-all;
+    background-color: var(--bg-input);
+    border: 2px solid var(--border-input);
+    color: var(--text-main);
+    @apply mt-1 block w-full px-4 py-3 rounded-xl shadow-sm placeholder-gray-400 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:outline-none sm:text-sm;
+}
+
+.input-base::placeholder {
+    color: var(--text-very-muted);
 }
 
 /* Field Grouping */
 .field-group {
-    @apply p-6 bg-white border border-gray-100 rounded-2xl shadow-sm mb-6 space-y-4;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-main);
+    box-shadow: var(--shadow);
+    @apply p-6 rounded-2xl mb-6 space-y-4;
 }
 
 .section-header {
-    @apply text-sm font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2;
+    @apply text-sm font-bold text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2;
 }
 
 /* Label Styling */
 .label-base {
-    @apply block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1;
+    color: var(--text-muted);
+    @apply block text-xs font-bold uppercase tracking-wider mb-2 ml-1;
 }
 
 /* Button Styling */
 .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all;
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95;
 }
 
 .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-gray-200 text-sm font-bold rounded-xl text-gray-700 bg-white hover:bg-gray-50 active:scale-95 transition-all;
+    border: 1px solid var(--border-input);
+    color: var(--text-main);
+    background-color: var(--bg-card);
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 active:scale-95;
 }
 
-/* Modal Styling - Lightened background */
+/* Modal Styling */
 .modal-overlay {
     @apply fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4;
     animation: fade-in 0.3s ease-out forwards;
 }
 
 .modal-content {
-    @apply bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-white;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-main);
+    @apply rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden;
     animation: zoom-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -91,11 +131,15 @@ body {
 
 /* Table Enhancements */
 .table-header {
-    @apply px-6 py-4 bg-gray-50/50 text-left text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100;
+    background-color: var(--bg-input);
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-main);
+    @apply px-6 py-4 text-left text-xs font-bold uppercase tracking-widest;
 }
 
 .table-row {
-    @apply hover:bg-blue-50/30 transition-colors border-b border-gray-50 last:border-0;
+    border-bottom: 1px solid var(--border-main);
+    @apply hover:bg-blue-50/10 last:border-0;
 }
 
 /* Hide Number Input Arrows */
@@ -107,6 +151,8 @@ input::-webkit-inner-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield !important;
+    /* Prevent mouse wheel from changing values */
+    appearance: none;
 }
 
 /* Scrollbar */
@@ -115,9 +161,10 @@ input[type=number] {
 }
 
 ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+    background-color: var(--border-input);
+    @apply rounded-full hover:bg-gray-400 dark:hover:bg-slate-700 transition-colors;
 }

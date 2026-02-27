@@ -14,7 +14,7 @@ namespace RentalManagement.Services
         Task<ApiResponse<string>> DeleteRental(int Id);
         Task<ApiResponse<List<ReturnedRentalDto>>> FilterRental(RentalFilterDto Dto);
         Task<ApiResponse<ReturnedRentalNoteDto>> AddRentalNote(int rentalId, string content, string? employeeId);
-        Task<ApiResponse<string>> CancelRental(int rentalId, RentalStatus rentaStatus);
+        Task<ApiResponse<string>> CancelRental(int rentalId, RentalStatus rentaStatus, string? cancellationReason);
         Task<ApiResponse<bool>> CompleteRental(int rentalId);  
         
     }

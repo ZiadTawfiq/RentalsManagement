@@ -15,7 +15,7 @@
 
         public decimal CustomerDeposit {get; set;}
         public decimal OwnerDeposit { get; set;  }
-
+       
         public bool HasCampaignDiscount { get; set; }
         public int? CampainId { get; set; }
 

@@ -7,8 +7,8 @@ namespace RentalManagement.Repositories
     {
         Task<FinancialAccount?> GetByIdAsync(int? id);
         Task<List<FinancialAccount>> GetAllAsync();
-        Task AddAsync(FinancialAccount financtialAccount , decimal amount);
-        void UpdateAsync(FinancialAccount financialAccount);
+        Task AddAsync(FinancialAccountDto dto);
+        Task<string> UpdateAsync(UpdateFinancialAccountDto dto);
         Task SaveAsync();
     }
 }

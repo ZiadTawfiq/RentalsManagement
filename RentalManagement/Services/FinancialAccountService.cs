@@ -9,9 +9,9 @@ namespace RentalManagement.Services
 {
     public class FinancialAccountService(IFinancialAccountRepository _financialAccountRepo, AppDbContext _context) : IFinancialAccountService
     {
-        public async Task AddAsync(FinancialAccount financtialAccount, decimal amount)
+        public async Task AddAsync(FinancialAccountDto dto)
         {
-            await _financialAccountRepo.AddAsync(financtialAccount, amount);
+            await _financialAccountRepo.AddAsync(dto);
             await SaveAsync();
         }
         public async Task<ApiResponse<string>> Transfer(
@@ -79,7 +79,7 @@ namespace RentalManagement.Services
         public async Task<ApiResponse<string>> Deposit(
              int accountId,
              decimal amount,
-             string? comment , TransactionType type)
+             string? comment, TransactionType type, int? rentalId = null)
         {
             if (amount <= 0)
                 return ApiResponse<string>.Failure("Amount must be greater than zero.");
@@ -98,6 +98,7 @@ namespace RentalManagement.Services
                 Amount = amount,
                 Description = "External deposit",
                 Notes = comment,
+                RentalId = rentalId,
                 Time = DateTime.UtcNow
             };
 
@@ -169,17 +170,25 @@ namespace RentalManagement.Services
 
 
 
-        public async Task UpdateAsync(FinancialAccount financialAccount)
+        public async Task<ApiResponse<string>> UpdateAsync(UpdateFinancialAccountDto dto)
         {
-            _financialAccountRepo.UpdateAsync(financialAccount);
+            var result = await _financialAccountRepo.UpdateAsync(dto);
+
+            if (result == "Account not found!" || result == "There is an Account with same Name")
+            {
+                return ApiResponse<string>.Failure(result);
+            }
+
             await SaveAsync();
+
+            return ApiResponse<string>.Success(result);
         }
 
 
         public async Task<ApiResponse<string>> Withdraw(
         int accountId,
         decimal amount,
-        string? comment, TransactionType type)
+        string? comment, TransactionType type, int? rentalId = null)
         {
             if (amount <= 0)
                 return ApiResponse<string>.Failure("Amount must be greater than zero.");
@@ -201,6 +210,7 @@ namespace RentalManagement.Services
                 Amount = amount,
                 Description = "External withdraw",
                 Notes = comment,
+                RentalId = rentalId,
                 Time = DateTime.UtcNow
             };
 
@@ -231,6 +241,45 @@ namespace RentalManagement.Services
             await _context.SaveChangesAsync();
 
             return result;
+        }
+        public async Task<List<FinancialTransactionDto>> GetTransactionsByAccountAsync(int accountId)
+        {
+            var query = _context.FinancialTransactions
+                   .Where(t => t.FinancialAccountId == accountId)
+                   .OrderByDescending(t => t.Time)
+                   .Include(t => t.Rental)
+                       .ThenInclude(r => r!.Owner)
+                   .Include(t => t.Rental)
+                       .ThenInclude(r => r!.Unit)
+                   .Include(t => t.Rental)
+                       .ThenInclude(r => r!.Property)
+                   .Include(t => t.Rental)
+                       .ThenInclude(r => r!.RentalSales)
+                           .ThenInclude(rs => rs.SalesRepresentative);
+
+            var transactions = await query.AsNoTracking().ToListAsync();
+
+            return transactions.Select(t => new FinancialTransactionDto
+            {
+                Id                = t.Id,
+                FinancialAccountId = t.FinancialAccountId,
+                TransactionType   = t.TransactionType,
+                Notes             = t.Notes,
+                Amount            = t.Amount,
+                Time              = t.Time,
+                Description       = t.Description,
+                RentalId          = t.RentalId,
+                PropertyName      = t.Rental?.Property?.Name,
+                UnitCode          = t.Rental?.Unit?.Code,
+                OwnerName         = t.Rental?.Owner?.Name,
+                ClientName        = t.Rental?.CustomerFullName,
+                Sales             = t.Rental?.RentalSales?.Select(rs => new SalesEntryDto
+                {
+                    SalesRepName = rs.SalesRepresentative?.UserName ?? "",
+                    Percentage   = rs.CommissionPercentage
+                }).ToList() ?? [],
+                DepositHolder = t.DepositHolder
+            }).ToList();
         }
     }
 }

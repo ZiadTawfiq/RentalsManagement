@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { IoAdd, IoPencil, IoTrash, IoPerson, IoBusiness, IoTime, IoWallet, IoDocumentText, IoFunnel, IoClose, IoCheckmark, IoBan } from "react-icons/io5";
+import { IoAdd, IoPencil, IoTrash, IoPerson, IoBusiness, IoTime, IoWallet, IoDocumentText, IoFunnel, IoClose, IoCheckmark, IoBan, IoLockClosed, IoArrowForward, IoCash } from "react-icons/io5";
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import SearchBar from '../components/SearchBar';
@@ -13,6 +13,7 @@ export default function Rentals() {
     const [rentals, setRentals] = useState([]);
     const [units, setUnits] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [accounts, setAccounts] = useState([]); // Financial accounts for dialogs
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function Rentals() {
     const [submittingNote, setSubmittingNote] = useState(false);
     const [campaigns, setCampaigns] = useState([]);
     const [campaignError, setCampaignError] = useState(null);
+    const [createComment, setCreateComment] = useState('');
 
     // Cancel dialog state
     const [cancelDialog, setCancelDialog] = useState(null); // { rentalId, rentalName }
@@ -31,6 +33,30 @@ export default function Rentals() {
     // Confirm (complete) dialog state
     const [confirmDialog, setConfirmDialog] = useState(null); // { rentalId, rentalName }
     const [confirmLoading, setConfirmLoading] = useState(false);
+
+    // Security Deposit dialog state
+    const [secDepDialog, setSecDepDialog] = useState(null); // { rentalId, rentalName, mode: 'add'|'refund' }
+    const [secDepToAccount, setSecDepToAccount] = useState('');
+    const [secDepFromAccount, setSecDepFromAccount] = useState('');
+    const [secDepAmount, setSecDepAmount] = useState('');
+    const [secDepHolder, setSecDepHolder] = useState('Company');
+    const [secDepLoading, setSecDepLoading] = useState(false);
+
+    // Pay Customer dialog state
+    const [payCustomerDialog, setPayCustomerDialog] = useState(null); // { rentalId, rentalName, outstanding }
+    const [payCustomerToAcc, setPayCustomerToAcc] = useState('');
+    const [payCustomerFromAcc, setPayCustomerFromAcc] = useState('');
+    const [payCustomerAmount, setPayCustomerAmount] = useState('');
+    const [payCustomerComment, setPayCustomerComment] = useState('');
+    const [payCustomerLoading, setPayCustomerLoading] = useState(false);
+
+    // Pay Owner dialog state
+    const [payOwnerDialog, setPayOwnerDialog] = useState(null); // { rentalId, rentalName, remaining }
+    const [payOwnerToAcc, setPayOwnerToAcc] = useState('');
+    const [payOwnerFromAcc, setPayOwnerFromAcc] = useState('');
+    const [payOwnerAmount, setPayOwnerAmount] = useState('');
+    const [payOwnerComment, setPayOwnerComment] = useState('');
+    const [payOwnerLoading, setPayOwnerLoading] = useState(false);
 
     // Search and Filter states
     const [searchTerm, setSearchTerm] = useState('');
@@ -71,12 +97,19 @@ export default function Rentals() {
 
     const fetchData = async () => {
         try {
-            const [rentalsRes, unitsRes, employeesRes, campaignsRes] = await Promise.all([
+            const [rentalsRes, unitsRes, employeesRes, campaignsRes, accountsRes] = await Promise.all([
                 api.get('Rental'),
                 api.get('Unit'),
                 api.get('Employee'),
-                api.get('Campain')
+                api.get('Campain'),
+                api.get('FinancialAccount')
             ]);
+
+            if (accountsRes.data) {
+                // API might return array directly or wrapped
+                const accData = Array.isArray(accountsRes.data) ? accountsRes.data : (accountsRes.data.data || accountsRes.data);
+                setAccounts(Array.isArray(accData) ? accData : []);
+            }
 
             if (campaignsRes.data.isSuccess) {
                 setCampaigns(campaignsRes.data.data || []);
@@ -195,10 +228,13 @@ export default function Rentals() {
                     alert('Failed to update rental: ' + (response.data.message || 'Unknown error'));
                 }
             } else {
-                const response = await api.post('Rental/create', payload);
+                // Pass comment as query param for create
+                const commentParam = createComment.trim() ? `?comment=${encodeURIComponent(createComment.trim())}` : '';
+                const response = await api.post(`Rental/create${commentParam}`, payload);
                 if (response.data.isSuccess) {
                     await fetchData();
                     closeModal();
+                    setCreateComment('');
                 } else {
                     alert('Failed to create rental: ' + (response.data.message || 'Unknown error'));
                 }
@@ -208,6 +244,114 @@ export default function Rentals() {
             const backendMsg = err.response?.data?.message || err.response?.data?.title || err.response?.data;
             const errorText = typeof backendMsg === 'string' ? backendMsg : JSON.stringify(backendMsg);
             alert('Error saving rental: ' + (errorText || err.message));
+        }
+    };
+
+    // ========== Security Deposit Handlers ==========
+    const handleOpenSecDep = (rental, mode) => {
+        setSecDepDialog({ rentalId: rental.id, rentalName: rental.customerFullName || rental.unitCode, mode });
+        setSecDepToAccount('');
+        setSecDepFromAccount('');
+        setSecDepAmount(rental.securityDeposit || '');
+        setSecDepHolder('Company');
+    };
+
+    const handleConfirmSecDep = async () => {
+        if (!secDepDialog) return;
+        setSecDepLoading(true);
+        try {
+            if (secDepDialog.mode === 'add') {
+                const res = await api.post(`Rental/${secDepDialog.rentalId}/security-deposit/add`, {
+                    toAccountId: parseInt(secDepToAccount),
+                    amount: parseFloat(secDepAmount),
+                    holder: secDepHolder
+                });
+                if (res.data.isSuccess) {
+                    setSecDepDialog(null);
+                    await fetchData();
+                } else {
+                    alert('Failed: ' + (res.data.message || 'Unknown error'));
+                }
+            } else {
+                const res = await api.post(`Rental/${secDepDialog.rentalId}/security-deposit/refund`, {
+                    fromAccountId: parseInt(secDepFromAccount),
+                    amount: parseFloat(secDepAmount)
+                });
+                if (res.data.isSuccess) {
+                    setSecDepDialog(null);
+                    await fetchData();
+                } else {
+                    alert('Failed: ' + (res.data.message || 'Unknown error'));
+                }
+            }
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setSecDepLoading(false);
+        }
+    };
+
+    // ========== Pay Customer Remaining Handler ==========
+    const handleOpenPayCustomer = (rental) => {
+        setPayCustomerDialog({ rentalId: rental.id, rentalName: rental.customerFullName || rental.unitCode, outstanding: rental.customerOutstanding });
+        setPayCustomerToAcc('');
+        setPayCustomerFromAcc('');
+        setPayCustomerAmount(rental.customerOutstanding || '');
+        setPayCustomerComment('');
+    };
+
+    const handleConfirmPayCustomer = async () => {
+        if (!payCustomerDialog) return;
+        setPayCustomerLoading(true);
+        try {
+            const commentParam = payCustomerComment.trim() ? `?comment=${encodeURIComponent(payCustomerComment.trim())}` : '';
+            const res = await api.post(`Rental/${payCustomerDialog.rentalId}/pay/customer${commentParam}`, {
+                toAccountId: parseInt(payCustomerToAcc),
+                fromAccountId: 0, // Customer pays externally — no source account in our system
+                amount: parseFloat(payCustomerAmount)
+            });
+            if (res.data.isSuccess) {
+                setPayCustomerDialog(null);
+                await fetchData();
+            } else {
+                alert('Failed: ' + (res.data.message || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setPayCustomerLoading(false);
+        }
+    };
+
+    // ========== Pay Owner Remaining Handler ==========
+    const handleOpenPayOwner = (rental) => {
+        setPayOwnerDialog({ rentalId: rental.id, rentalName: rental.customerFullName || rental.unitCode, remaining: rental.ownerRemaining });
+        setPayOwnerToAcc('');
+        setPayOwnerFromAcc('');
+        setPayOwnerAmount(rental.ownerRemaining || '');
+        setPayOwnerComment('');
+    };
+
+    const handleConfirmPayOwner = async () => {
+        if (!payOwnerDialog) return;
+        setPayOwnerLoading(true);
+        try {
+            const commentParam = payOwnerComment.trim() ? `?comment=${encodeURIComponent(payOwnerComment.trim())}` : '';
+            const res = await api.post(`Rental/${payOwnerDialog.rentalId}/pay/owner${commentParam}`, {
+                toAccountId: 0, // Owner receives externally — no destination account in our system
+                fromAccountId: parseInt(payOwnerFromAcc),
+                amount: parseFloat(payOwnerAmount)
+            });
+            if (res.data.isSuccess) {
+                setPayOwnerDialog(null);
+                await fetchData();
+            } else {
+                alert('Failed: ' + (res.data.message || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setPayOwnerLoading(false);
         }
     };
 
@@ -296,6 +440,7 @@ export default function Rentals() {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingRental(null);
+        setCreateComment('');
         reset({
             sales: [{ salesRepresentitiveId: '', commissionPercentage: 0 }]
         });
@@ -687,10 +832,46 @@ export default function Rentals() {
                                                     <button
                                                         onClick={() => handleConfirmRental(rental)}
                                                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-95"
-                                                        title="Confirm / Complete"
+                                                        title="Complete Rental"
                                                     >
                                                         <IoCheckmark size={18} />
                                                     </button>
+                                                )}
+                                                {isActive && (rental.customerOutstanding > 0) && (
+                                                    <button
+                                                        onClick={() => handleOpenPayCustomer(rental)}
+                                                        className="p-2 text-blue-700 hover:bg-blue-50 rounded-lg transition-all active:scale-95"
+                                                        title="Pay Customer Remaining"
+                                                    >
+                                                        <IoCash size={18} />
+                                                    </button>
+                                                )}
+                                                {isActive && (rental.ownerRemaining > 0) && (
+                                                    <button
+                                                        onClick={() => handleOpenPayOwner(rental)}
+                                                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all active:scale-95"
+                                                        title="Pay Owner Remaining"
+                                                    >
+                                                        <IoArrowForward size={18} />
+                                                    </button>
+                                                )}
+                                                {isActive && (rental.securityDeposit > 0) && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleOpenSecDep(rental, 'add')}
+                                                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all active:scale-95"
+                                                            title="Add Security Deposit"
+                                                        >
+                                                            <IoLockClosed size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleOpenSecDep(rental, 'refund')}
+                                                            className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all active:scale-95"
+                                                            title="Refund Security Deposit"
+                                                        >
+                                                            <IoWallet size={18} />
+                                                        </button>
+                                                    </>
                                                 )}
                                                 {isActive && (
                                                     <button
@@ -957,7 +1138,7 @@ export default function Rentals() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100">
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100">
                                     <div>
                                         <label className="label-base !mb-1">Customer Deposit</label>
                                         <input
@@ -995,10 +1176,6 @@ export default function Rentals() {
                                             className="input-base !py-2"
                                             placeholder="0.00"
                                         />
-                                    </div>
-                                    <div>
-                                        <label className="label-base !mb-1">Security Fund</label>
-                                        <input type="number" step="0.01" {...register('securityDeposit')} className="input-base !py-2" placeholder="0.00" />
                                     </div>
                                 </div>
                             </div>
@@ -1152,6 +1329,22 @@ export default function Rentals() {
                         </div>
                     </div>
 
+                    {/* Comment for Create Rental — only when creating new */}
+                    {!editingRental && (
+                        <div className="field-group border-gray-200 bg-gray-50/30">
+                            <div className="section-header !mb-3 text-gray-700">
+                                <IoDocumentText size={18} />
+                                Comment (Optional)
+                            </div>
+                            <textarea
+                                value={createComment}
+                                onChange={(e) => setCreateComment(e.target.value)}
+                                className="input-base min-h-[80px]"
+                                placeholder="Add a comment or note for this rental creation..."
+                            />
+                        </div>
+                    )}
+
                     <div className="flex justify-end gap-3 pt-8 mt-4 border-t border-gray-100">
                         <button type="button" onClick={closeModal} className="btn-secondary">Discard</button>
                         <button type="submit" className="btn-primary">
@@ -1264,6 +1457,220 @@ export default function Rentals() {
                                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-60"
                             >
                                 {confirmLoading ? 'Processing...' : 'Confirm Completion'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ===== Security Deposit Dialog ===== */}
+            {secDepDialog && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                                <IoLockClosed size={20} className={secDepDialog.mode === 'add' ? 'text-purple-500' : 'text-teal-500'} />
+                                {secDepDialog.mode === 'add' ? 'Add Security Deposit' : 'Refund Security Deposit'}
+                            </h3>
+                            <button onClick={() => setSecDepDialog(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                                <IoClose size={18} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-5">
+                            Rental: <span className="font-bold text-gray-800">{secDepDialog.rentalName}</span>
+                        </p>
+
+                        <div className="space-y-4">
+                            {secDepDialog.mode === 'add' ? (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Deposit To Account</label>
+                                    <select
+                                        value={secDepToAccount}
+                                        onChange={e => setSecDepToAccount(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    >
+                                        <option value="">Select account...</option>
+                                        {accounts.map(a => (
+                                            <option key={a.id} value={a.id}>{a.name} — ${Number(a.balance || 0).toLocaleString()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Refund From Account</label>
+                                    <select
+                                        value={secDepFromAccount}
+                                        onChange={e => setSecDepFromAccount(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                    >
+                                        <option value="">Select account...</option>
+                                        {accounts.map(a => (
+                                            <option key={a.id} value={a.id}>{a.name} — ${Number(a.balance || 0).toLocaleString()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {secDepDialog.mode === 'add' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Held By</label>
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={() => setSecDepHolder('Company')}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-all ${secDepHolder === 'Company' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                                }`}>
+                                            Company
+                                        </button>
+                                        <button type="button" onClick={() => setSecDepHolder('Owner')}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-all ${secDepHolder === 'Owner' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                                }`}>
+                                            Owner
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Amount</label>
+                                <input
+                                    type="number" step="0.01"
+                                    value={secDepAmount}
+                                    onChange={e => setSecDepAmount(e.target.value)}
+                                    onWheel={e => e.target.blur()}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 font-bold"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setSecDepDialog(null)}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleConfirmSecDep} disabled={secDepLoading ||
+                                (secDepDialog.mode === 'add' ? !secDepToAccount : !secDepFromAccount) || !secDepAmount}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-50 ${secDepDialog.mode === 'add' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-teal-600 hover:bg-teal-700'
+                                    }`}>
+                                {secDepLoading ? 'Processing...' : (secDepDialog.mode === 'add' ? 'Add Deposit' : 'Refund Deposit')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== Pay Customer Remaining Dialog ===== */}
+            {payCustomerDialog && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                                <IoCash size={20} className="text-blue-600" />
+                                Pay Customer Remaining
+                            </h3>
+                            <button onClick={() => setPayCustomerDialog(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                                <IoClose size={18} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">
+                            Tenant: <span className="font-bold text-gray-800">{payCustomerDialog.rentalName}</span>
+                        </p>
+                        <p className="text-xs text-blue-600 font-bold mb-5">
+                            Outstanding Balance: ${Number(payCustomerDialog.outstanding || 0).toLocaleString()}
+                        </p>
+
+                        <div className="space-y-4">
+                            {/* Customer pays externally — we only pick which of our accounts receives the money */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Deposit To Account</label>
+                                <select value={payCustomerToAcc} onChange={e => setPayCustomerToAcc(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">Select account to receive...</option>
+                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} — ${Number(a.balance || 0).toLocaleString()}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Amount</label>
+                                <input type="number" step="0.01" value={payCustomerAmount} onChange={e => setPayCustomerAmount(e.target.value)}
+                                    onWheel={e => e.target.blur()}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-bold"
+                                    placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Comment <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+                                <textarea value={payCustomerComment} onChange={e => setPayCustomerComment(e.target.value)} rows={2}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                                    placeholder="e.g. Cash received / bank transfer ref..." />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setPayCustomerDialog(null)}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleConfirmPayCustomer}
+                                disabled={payCustomerLoading || !payCustomerToAcc || !payCustomerAmount}
+                                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
+                                {payCustomerLoading ? 'Processing...' : 'Confirm Payment'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== Pay Owner Remaining Dialog ===== */}
+            {payOwnerDialog && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                                <IoArrowForward size={20} className="text-orange-600" />
+                                Pay Owner Remaining
+                            </h3>
+                            <button onClick={() => setPayOwnerDialog(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                                <IoClose size={18} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">
+                            Rental: <span className="font-bold text-gray-800">{payOwnerDialog.rentalName}</span>
+                        </p>
+                        <p className="text-xs text-orange-600 font-bold mb-5">
+                            Owner Balance: ${Number(payOwnerDialog.remaining || 0).toLocaleString()}
+                        </p>
+
+                        <div className="space-y-4">
+                            {/* We pay owner externally — only pick which of our accounts the money comes from */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Pay From Account</label>
+                                <select value={payOwnerFromAcc} onChange={e => setPayOwnerFromAcc(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                    <option value="">Select account to pay from...</option>
+                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} — ${Number(a.balance || 0).toLocaleString()}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Amount</label>
+                                <input type="number" step="0.01" value={payOwnerAmount} onChange={e => setPayOwnerAmount(e.target.value)}
+                                    onWheel={e => e.target.blur()}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 font-bold"
+                                    placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">Comment <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+                                <textarea value={payOwnerComment} onChange={e => setPayOwnerComment(e.target.value)} rows={2}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                                    placeholder="e.g. Transferred to owner bank account..." />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setPayOwnerDialog(null)}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleConfirmPayOwner}
+                                disabled={payOwnerLoading || !payOwnerFromAcc || !payOwnerAmount}
+                                className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
+                                {payOwnerLoading ? 'Processing...' : 'Confirm Payment'}
                             </button>
                         </div>
                     </div>

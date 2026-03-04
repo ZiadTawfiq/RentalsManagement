@@ -1,56 +1,70 @@
-﻿    using Microsoft.AspNetCore.Authorization;
-    using Microsoft.AspNetCore.Mvc;
-    using RentalManagement.Entities;
-    using RentalManagement.Services;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using RentalManagement.DTOs;
+using RentalManagement.Entities;
+using RentalManagement.Services;
 
+namespace RentalManagement.Controllers
+{
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Admin,Accountant")]
     public class FinancialAccountController : ControllerBase
     {
-        private readonly IFinancialAccountService _service;
+        private readonly IFinancialAccountService _financialAccountService;
 
-        public FinancialAccountController(IFinancialAccountService service)
+        public FinancialAccountController(IFinancialAccountService financialAccountService)
         {
-            _service = service;
+            _financialAccountService = financialAccountService;
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _financialAccountService.GetByIdAsync(id);
+
+            if (result == null)
+                return NotFound();
+
             return Ok(result);
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllAsync();
+            var result = await _financialAccountService.GetAllAsync();
             return Ok(result);
         }
 
-        [HttpPost("{id}/deposit")]
-        public async Task<IActionResult> Deposit(
-            int id,
-            [FromQuery] decimal amount,
-            [FromQuery] string? comment,
-            [FromQuery] TransactionType type)
+        [HttpGet("name/{name}")]
+        public async Task<IActionResult> GetByName(string name)
         {
-            var result = await _service.Deposit(id, amount, comment, type);
+            var result = await _financialAccountService.GetByNameAsync(name);
+
+            if (result == null)
+                return NotFound();
+
             return Ok(result);
         }
 
-        [HttpPost("{id}/withdraw")]
-        public async Task<IActionResult> Withdraw(
-            int id,
-            [FromQuery] decimal amount,
-            [FromQuery] string? comment,
-            [FromQuery] TransactionType type)
+        [HttpPost("create")]
+        public async Task<IActionResult> Create([FromBody] FinancialAccountDto dto)
         {
-            var result = await _service.Withdraw(id, amount, comment, type);
+
+            await _financialAccountService.AddAsync(dto);
+
+            return Ok("Account Created Successfully");
+        }
+
+        [HttpPut("update")]
+        public async Task<IActionResult> Update([FromBody] UpdateFinancialAccountDto account)
+        {
+            var result = await _financialAccountService.UpdateAsync(account);
+
             return Ok(result);
         }
 
+     
         [HttpPost("transfer")]
         public async Task<IActionResult> Transfer(
             [FromQuery] int senderId,
@@ -58,39 +72,48 @@
             [FromQuery] decimal amount,
             [FromQuery] string? comment)
         {
-            var result = await _service.Transfer(senderId, receiverId, amount, comment);
+            var result = await _financialAccountService.Transfer(senderId, receiverId, amount, comment);
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
             return Ok(result);
         }
-    // ==================== External Deposit ====================
 
-    [HttpPost("{accountId}/deposit-external")]
-    public async Task<IActionResult> DepositExternal(
-        [FromRoute] int accountId,
-        [FromQuery] decimal amount,
-        [FromQuery] string? comment)
-    {
-        var result = await _service.DepositExternal(accountId, amount, comment);
+        [HttpPost("{accountId}/deposit-external")]
+        public async Task<IActionResult> DepositExternal(
+            int accountId,
+            [FromQuery] decimal amount,
+            [FromQuery] string? comment)
+        {
+            var result = await _financialAccountService.DepositExternal(accountId, amount, comment);
 
-        if (!result.IsSuccess)
-            return BadRequest(result);
+            if (!result.IsSuccess)
+                return BadRequest(result);
 
-        return Ok(result);
-    }
+            return Ok(result);
+        }
 
+        [HttpPost("{accountId}/withdraw-external")]
+        public async Task<IActionResult> WithdrawExternal(
+            int accountId,
+            [FromQuery] decimal amount,
+            [FromQuery] string? comment)
+        {
+            var result = await _financialAccountService.WithdrawExternal(accountId, amount, comment);
 
-    // ==================== External Withdraw ====================
+            if (!result.IsSuccess)
+                return BadRequest(result);
 
-    [HttpPost("{accountId}/withdraw-external")]
-    public async Task<IActionResult> WithdrawExternal(
-        [FromRoute] int accountId,
-        [FromQuery] decimal amount,
-        [FromQuery] string? comment)
-    {
-        var result = await _service.WithdrawExternal(accountId, amount, comment);
+            return Ok(result);
+        }
 
-        if (!result.IsSuccess)
-            return BadRequest(result);
-
-        return Ok(result);
+        /// <summary>Returns all transactions for an account ordered newest-first, with full rental context.</summary>
+        [HttpGet("{accountId}/transactions")]
+        public async Task<IActionResult> GetTransactions(int accountId)
+        {
+            var result = await _financialAccountService.GetTransactionsByAccountAsync(accountId);
+            return Ok(result);
+        }
     }
 }

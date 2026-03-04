@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     IoGridOutline, IoBusinessOutline, IoKeyOutline, IoPersonOutline,
     IoReceiptOutline, IoPeopleOutline, IoStatsChartOutline, IoMegaphoneOutline,
-    IoLogOutOutline, IoMenuOutline, IoChevronBackOutline
+    IoLogOutOutline, IoMenuOutline, IoChevronBackOutline, IoWalletOutline
 } from 'react-icons/io5';
 import logo from '../assets/logo.png';
 
@@ -21,6 +21,7 @@ export default function Layout() {
         { path: '/employees', label: 'Employees', icon: <IoPeopleOutline />, category: 'Admin' },
         { path: '/commission', label: 'Commissions', icon: <IoStatsChartOutline />, category: 'Admin' },
         { path: '/campaigns', label: 'Campaigns', icon: <IoMegaphoneOutline />, category: 'Admin' },
+        { path: '/accounts', label: 'Accounts', icon: <IoWalletOutline />, category: 'Finance' },
     ];
 
     const handleSignOut = () => {

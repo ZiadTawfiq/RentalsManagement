@@ -121,8 +121,8 @@ namespace RentalManagement.Services
                 .LoadAsync();
             using var transaction = await _context.Database.BeginTransactionAsync(); try
             {
-                await _finanacialAccountService.Deposit(dto.ToFinancialAccountId, dto.CustomerDeposit, comment,TransactionType.Deposit);
-                await _finanacialAccountService.Withdraw(dto.FromFinancialAccountId, dto.OwnerDeposit, comment,TransactionType.Withdraw);
+                await _finanacialAccountService.Deposit(dto.ToFinancialAccountId, dto.CustomerDeposit, comment, TransactionType.Deposit, rental.Id);
+                await _finanacialAccountService.Withdraw(dto.FromFinancialAccountId, dto.OwnerDeposit, comment, TransactionType.Withdraw, rental.Id);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -317,7 +317,7 @@ namespace RentalManagement.Services
                 var depositResult = await _finanacialAccountService.Deposit(
                     dto.ToFinancialAccountId,
                     customerDiff,
-                    "Rental Adjustment - Customer Deposit زيادة",TransactionType.Deposit
+                    "Rental Adjustment - Customer Deposit زيادة", TransactionType.Deposit, rental.Id
                 );
 
                 if (!depositResult.IsSuccess)
@@ -329,7 +329,7 @@ namespace RentalManagement.Services
                     dto.ToFinancialAccountId,
                     Math.Abs(customerDiff),
                     "Rental Adjustment - Customer Deposit استرجاع"
-                    ,TransactionType.Withdraw
+                    , TransactionType.Withdraw, rental.Id
                 );
 
                 if (!withdrawResult.IsSuccess)
@@ -345,7 +345,7 @@ namespace RentalManagement.Services
                     dto.FromFinancialAccountId,
                     ownerDiff,
                     "Rental Adjustment - Owner Deposit زيادة"
-                    ,TransactionType.Withdraw
+                    , TransactionType.Withdraw, rental.Id
                 );
 
                 if (!withdrawResult.IsSuccess)
@@ -357,7 +357,7 @@ namespace RentalManagement.Services
                     dto.FromFinancialAccountId,
                     Math.Abs(ownerDiff),
                     "Rental Adjustment - Owner Deposit استرجاع",
-                    TransactionType.Deposit
+                    TransactionType.Deposit, rental.Id
                 );
 
                 if (!depositResult.IsSuccess)
@@ -531,20 +531,30 @@ namespace RentalManagement.Services
 
         public async Task<ApiResponse<string>> AddSecurityDeposit(int rentalId, AddSecurityDepositDto dto)
         {
+            var rental = await _context.Rentals
+                  .FirstOrDefaultAsync(_ => _.Id == rentalId);
+            if (rental == null)
+                return ApiResponse<string>.Failure("There is no Rental!");
+
             if (dto.Amount <= 0)
             {
                 return ApiResponse<string>.Failure("Amount Must be More than Zero!");
             }
+            string description = ""; 
             if (dto.Holder == SecurityFundHolder.Owner)
             {
-                return ApiResponse<string>.Success("سيتم تحويل التأمين للمالك ولن يؤثر ذلك علي النظام");
+                description = "التأمين هيروح المالك";
+                rental.holder = SecurityFundHolder.Owner;
+
             }
-            var rental = await _context.Rentals
-                   .FirstOrDefaultAsync(_ => _.Id == rentalId);
-
-            if (rental == null)
-                return ApiResponse<string>.Failure("There is no Rental!");
-
+            else if (dto.Holder == SecurityFundHolder.Company)
+            {
+                description = "التأمين مع الشركه ";
+                rental.holder = SecurityFundHolder.Company;
+            }
+            
+        
+           
             var financialAccount = await _context.FinancialAccounts
                 .FirstOrDefaultAsync(_ => _.Id == dto.ToAccountId);
 
@@ -567,8 +577,9 @@ namespace RentalManagement.Services
                     RentalId = rentalId,
                     FinancialAccountId = dto.ToAccountId,
                     TransactionType = TransactionType.SecurityDeposit,
-                    Time = DateTime.UtcNow,
-                    Description = "Security Deposit Payment"
+                    Time = DateTime.Now,
+                    Description = description,
+                    DepositHolder = rental.holder.ToString()
                 };
 
                 await _context.FinancialTransactions.AddAsync(transaction);
@@ -592,15 +603,21 @@ namespace RentalManagement.Services
             {
                 return ApiResponse<string>.Failure("Amount Must be More than Zero!");
             }
-            if (dto.holder == SecurityFundHolder.Owner)
-            {
-                return ApiResponse<string>.Success("سيتم رد التأمين من خلال المالك ولن يؤثر ذلك علي النظام ");
-            }
+            string description = ""; 
+          
             var rental = await _context.Rentals
                   .FirstOrDefaultAsync(_ => _.Id == rentalId);
 
             if (rental == null)
                 return ApiResponse<string>.Failure("There is no Rental!");
+            if (rental.holder == SecurityFundHolder.Owner)
+            {
+                description = "تم استرجاع التأمين من خلال المالك ";
+            }
+            if (rental.holder == SecurityFundHolder.Company)
+            {
+                description = "تم استرجاع التأمين من خلال الشركه ";
+            }
 
             var financialAccount = await _context.FinancialAccounts
                 .FirstOrDefaultAsync(_ => _.Id == dto.FromAccountId);
@@ -613,11 +630,10 @@ namespace RentalManagement.Services
             {
                 return ApiResponse<string>.Failure("خلي بالك كده التأمين اللي هترجعه ازيد من اللي العميل دفعه ");
             }
-            string description = "";
-            if (rental.SecurityDeposit == dto.Amount) description = "تم رد التأمين بالكامل ";
+            if (rental.SecurityDeposit == dto.Amount) description+= "تم رد التأمين بالكامل ";
             else if (rental.SecurityDeposit > dto.Amount)
             {
-                description = "تم رد جزء فقط من التأمين ";
+                description+= "تم رد جزء فقط من التأمين ";
             }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -639,7 +655,8 @@ namespace RentalManagement.Services
                     FinancialAccountId = dto.FromAccountId,
                     TransactionType = TransactionType.SecurityRefund,
                     Time = DateTime.UtcNow,
-                    Description = description
+                    Description = description,
+                    DepositHolder = rental.holder.ToString()
                 };
 
                 await _context.FinancialTransactions.AddAsync(transaction);
@@ -682,7 +699,8 @@ namespace RentalManagement.Services
                          dto.ToAccountId,
                          dto.Amount,
                          comment,
-                         TransactionType.RentPayment
+                         TransactionType.RentPayment,
+                         rentalId
                      );
 
                 if (!depositResult.IsSuccess)
@@ -726,7 +744,8 @@ namespace RentalManagement.Services
                          dto.FromAccountId,
                          dto.Amount,
                          comment,
-                         TransactionType.RentPayment
+                         TransactionType.RentPayment,
+                         rentalId
                      );
 
                 if (!withdrawResult.IsSuccess)

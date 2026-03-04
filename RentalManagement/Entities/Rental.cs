@@ -18,7 +18,9 @@ public class Rental
 
     // Payments (FACTS)
     public decimal CustomerDeposit { get; set; }   
-    public decimal? OwnerDeposit { get; set; }        
+    public decimal? OwnerDeposit { get; set; }
+   
+    public SecurityFundHolder? holder { get; set;  }
     public decimal? SecurityDeposit { get; set; } 
     // Campaign
     public bool HasCampaignDiscount { get; set; }

@@ -1,22 +1,23 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
 namespace RentalManagement.Repositories
 {
     public class FinancialAccountRepository(AppDbContext _context) : IFinancialAccountRepository
     {
-        public async Task AddAsync(FinancialAccount financtialAccount , decimal amount)
+        public async Task AddAsync(FinancialAccountDto dto)
         {
-            bool exist = await _context.FinancialAccounts.AnyAsync(_ => _.Name == financtialAccount.Name); 
+            bool exist = await _context.FinancialAccounts.AnyAsync(_ => _.Name == dto.Name); 
             if (exist)
             {
                 return;
             }
             var fincialAccount = new FinancialAccount()
             {
-                accountType = financtialAccount.accountType,
-                Balance = amount,
-                Name = financtialAccount.Name,
+                accountType = dto.accountType,
+                Balance = dto.Balance,
+                Name = dto.Name,
             };
             await _context.FinancialAccounts.AddAsync(fincialAccount);
 
@@ -39,9 +40,24 @@ namespace RentalManagement.Repositories
             await _context.SaveChangesAsync(); 
         }
 
-        public void UpdateAsync(FinancialAccount financialAccount)
+        public async Task<string> UpdateAsync(UpdateFinancialAccountDto dto)
         {
-            _context.FinancialAccounts.Update(financialAccount);
+            var account = await _context.FinancialAccounts
+                 .FirstOrDefaultAsync(_ => _.Id == dto.Id);
+            if (account == null)
+            {
+                return "Account not found!";
+            }
+            var existAccountWithSameName = await _context.FinancialAccounts
+              .AnyAsync(_ => _.Name == dto.Name && _.Id != dto.Id);
+            if (existAccountWithSameName)
+            {
+                return "There is an Account with same Name"; 
+            }
+            account.accountType = dto.Type;
+            account.Name = dto.Name;
+            return "Account Updated Successfully"; 
+
         }
 
     

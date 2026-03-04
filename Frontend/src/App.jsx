@@ -8,6 +8,7 @@ import Units from './pages/Units';
 import Employees from './pages/Employees';
 import Commission from './pages/Commission';
 import Campaigns from './pages/Campaigns';
+import FinancialAccounts from './pages/FinancialAccounts';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect } from 'react';
@@ -37,6 +38,7 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/commission" element={<Commission />} />
             <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/accounts" element={<FinancialAccounts />} />
           </Route>
         </Route>
       </Routes>

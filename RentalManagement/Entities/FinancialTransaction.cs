@@ -16,6 +16,6 @@ namespace RentalManagement.Entities
         public string ?Notes { get; set;  }
         public decimal Amount { get; set; }
         public DateTime Time { get; set;  }
-
+        public string? DepositHolder { get; set; }
     }
 }

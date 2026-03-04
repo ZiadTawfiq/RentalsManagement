@@ -7,7 +7,7 @@ namespace RentalManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles ="Admin,DataEntry,Accountant")]
+    //[Authorize(Roles ="Admin,DataEntry,Accountant")]
     public class OwnerController : ControllerBase
     {
         private readonly IOwnerService _ownerService;
@@ -41,6 +41,7 @@ namespace RentalManagement.Controllers
 
         // POST: api/Owner
         [HttpPost]
+        [Route("Create")]
         public async Task<IActionResult> Create([FromBody] OwnerDto dto)
         {
             var result = await _ownerService.CreateOwner(dto);

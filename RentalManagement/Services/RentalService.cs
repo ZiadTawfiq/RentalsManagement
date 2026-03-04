@@ -3,16 +3,17 @@ using RentalManagement.DTOs;
 using RentalManagement.Entities;
 using RentalManagement.Repositories;
 using AutoMapper;
+using System.Transactions;
 
 namespace RentalManagement.Services
 {
-    public class RentalService(ISystemSettingService _systemSetting, AppDbContext _context, IRentalRepository _rentalRepository, IMapper _mapper) : IRentalService
+    public class RentalService(ISystemSettingService _systemSetting, AppDbContext _context, IRentalRepository _rentalRepository, IMapper _mapper, IFinancialAccountService _finanacialAccountService) : IRentalService
     {
-        public async Task<ApiResponse< ReturnedRentalDto>> CreateRental(CreateRentalDto dto,string UserId)
+        public async Task<ApiResponse<ReturnedRentalDto>> CreateRental(CreateRentalDto dto, string UserId, string? comment)
         {
             if (dto.EndDate < dto.StartDate)
                 throw new Exception("EndDate must be after StartDate");
-            
+
             var Days = dto.EndDate.DayNumber - dto.StartDate.DayNumber;
 
 
@@ -23,7 +24,7 @@ namespace RentalManagement.Services
             var Price_Owner = dto.DayPriceOwner * Days;
 
             var Oustanding_Customer = Price_Customer - dto.CustomerDeposit;
-            
+
             var remainingOwner = Price_Owner - dto.OwnerDeposit;
 
             var totalCommision = Price_Customer - Price_Owner;
@@ -37,7 +38,7 @@ namespace RentalManagement.Services
 
                 decimal TC = totalCommision;
                 totalCommision -= totalCommision *
-                                            (CampainDiscountPercentage/ 100m);
+                                            (CampainDiscountPercentage / 100m);
                 campainMoney = TC * (CampainDiscountPercentage / 100m);
             }
 
@@ -52,15 +53,15 @@ namespace RentalManagement.Services
                 campainId = dto.CampainId,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
-                SecurityDeposit = dto.SecurityDeposit,
                 OwnerId = dto.OwnerId,
                 UnitId = dto.UnitId,
+                SecurityDeposit = 0,
                 PropertyId = dto.PropertyId,
                 CustomerFullName = dto.CustomerFullName,
                 CustomerPhoneNumber = dto.CustomerPhoneNumber,
                 ReservationTime = DateTime.Now,
                 status = RentalStatus.Active
-                
+
 
 
             };
@@ -71,23 +72,23 @@ namespace RentalManagement.Services
                     Content = dto.Notes,
                     CreatedAt = DateTime.Now,
                     AddedByEmployeeId = UserId
-                   
-                    
+
+
                 });
             }
-            
-            var commissionSum = 0m ; 
+
+            var commissionSum = 0m;
             foreach (var salesDto in dto.Sales)
             {
                 commissionSum += salesDto.CommissionPercentage ?? 0;
                 if (commissionSum > 100)
-                    throw new Exception("Commission percentage cannot be greater than 100%"); 
+                    throw new Exception("Commission percentage cannot be greater than 100%");
                 var commisionSales = (salesDto.CommissionPercentage) / 100 * totalCommision;
                 rental.RentalSales.Add(new RentalSales
                 {
                     SalesRepresentativeId = salesDto.SalesRepresentitiveId,
                     CommissionPercentage = salesDto.CommissionPercentage ?? 0,
-                    CommissionAmount = commisionSales??0
+                    CommissionAmount = commisionSales ?? 0
                 }
                 );
             }
@@ -117,9 +118,19 @@ namespace RentalManagement.Services
                 .Collection(r => r.RentalNotes)
                 .Query()
                 .Include(_ => _.AddedByEmployee)
-                .LoadAsync(); 
-         
-
+                .LoadAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync(); try
+            {
+                await _finanacialAccountService.Deposit(dto.ToFinancialAccountId, dto.CustomerDeposit, comment,TransactionType.Deposit);
+                await _finanacialAccountService.Withdraw(dto.FromFinancialAccountId, dto.OwnerDeposit, comment,TransactionType.Withdraw);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
             return ApiResponse<ReturnedRentalDto>.Success(_mapper.Map<ReturnedRentalDto>(rental));
         }
 
@@ -127,7 +138,7 @@ namespace RentalManagement.Services
         {
             return await _rentalRepository.DeleteRental(Id);
         }
-   
+
         public async Task<ApiResponse<List<ReturnedRentalDto>>> FilterRental(RentalFilterDto dto)
         {
             var query = _context.Rentals
@@ -181,14 +192,14 @@ namespace RentalManagement.Services
 
         public async Task<ApiResponse<List<ReturnedRentalDto>>> GetAllRentals()
         {
-           return await _rentalRepository.GetAllRentals(); 
+            return await _rentalRepository.GetAllRentals();
         }
 
-    
 
-        public async Task<ApiResponse<ReturnedRentalDto>> UpdateRental(UpdateRentalDto dto ,string UserId)
+
+        public async Task<ApiResponse<ReturnedRentalDto>> UpdateRental(UpdateRentalDto dto, string UserId)
         {
-    
+
             var rental = await _context.Rentals
                 .Include(r => r.RentalNotes)
                 .Include(r => r.RentalSales)
@@ -205,9 +216,12 @@ namespace RentalManagement.Services
             {
                 rental.RentalSettlement = new RentalSettlement { RentalId = rental.Id };
             }
-         
+            decimal oldCustomerDeposit = rental.CustomerDeposit;
+
+            decimal oldOwnerDeposit = rental.OwnerDeposit ?? 0m;
+
             var days =
-                (dto.EndDate.DayNumber - dto.StartDate.DayNumber) ;
+                (dto.EndDate.DayNumber - dto.StartDate.DayNumber);
 
             var priceCustomer = dto.DayPriceCustomer * days;
             var priceOwner = dto.DayPriceOwner * days;
@@ -221,7 +235,7 @@ namespace RentalManagement.Services
             var totalCommision = priceCustomer - priceOwner;
 
             decimal campaignMoney = 0;
-          
+
 
             if (dto.HasCampaignDiscount)
             {
@@ -243,7 +257,6 @@ namespace RentalManagement.Services
 
             rental.CustomerDeposit = dto.CustomerDeposit;
             rental.OwnerDeposit = dto.OwnerDeposit;
-            rental.SecurityDeposit = dto.SecurityDeposit;
 
             rental.HasCampaignDiscount = dto.HasCampaignDiscount;
             rental.campainId = dto.CampainId;
@@ -262,17 +275,17 @@ namespace RentalManagement.Services
                     Content = dto.Notes,
                     CreatedAt = DateTime.UtcNow,
                     AddedByEmployeeId = UserId
-                    
+
                 });
             }
 
-        
+
             rental.RentalSales.Clear();
             var commissionSum = 0m;
             foreach (var salesDto in dto.Sales)
             {
                 commissionSum += salesDto.CommissionPercentage ?? 0;
-                if(commissionSum > 100)
+                if (commissionSum > 100)
                     throw new Exception("Commission percentage cannot be greater than 100%");
                 var commissionAmount =
                     totalCommision *
@@ -280,12 +293,12 @@ namespace RentalManagement.Services
                 rental.RentalSales.Add(new RentalSales
                 {
                     SalesRepresentativeId = salesDto.SalesRepresentitiveId,
-                    CommissionPercentage = salesDto.CommissionPercentage??0,
-                    CommissionAmount = commissionAmount??0
+                    CommissionPercentage = salesDto.CommissionPercentage ?? 0,
+                    CommissionAmount = commissionAmount ?? 0
                 });
             }
 
-        
+
             rental.RentalSettlement.OwnerPaid = ownerPaid;
             rental.RentalSettlement.OwnerRemaining = remainingOwner;
             rental.RentalSettlement.OwnerTotalAmount = priceOwner;
@@ -297,6 +310,59 @@ namespace RentalManagement.Services
             rental.RentalSettlement.SalesCommission = totalCommision;
             rental.RentalSettlement.CampainMoney = campaignMoney;
             rental.RentalSettlement.CalculatedAt = DateTime.UtcNow;
+            var customerDiff = dto.CustomerDeposit - oldCustomerDeposit;
+
+            if (customerDiff > 0)
+            {
+                var depositResult = await _finanacialAccountService.Deposit(
+                    dto.ToFinancialAccountId,
+                    customerDiff,
+                    "Rental Adjustment - Customer Deposit زيادة",TransactionType.Deposit
+                );
+
+                if (!depositResult.IsSuccess)
+                    return ApiResponse<ReturnedRentalDto>.Failure(depositResult.Message);
+            }
+            else if (customerDiff < 0)
+            {
+                var withdrawResult = await _finanacialAccountService.Withdraw(
+                    dto.ToFinancialAccountId,
+                    Math.Abs(customerDiff),
+                    "Rental Adjustment - Customer Deposit استرجاع"
+                    ,TransactionType.Withdraw
+                );
+
+                if (!withdrawResult.IsSuccess)
+                    return ApiResponse<ReturnedRentalDto>.Failure(withdrawResult.Message);
+            }
+
+
+            decimal ownerDiff = dto.OwnerDeposit - oldOwnerDeposit;
+
+            if (ownerDiff > 0)
+            {
+                var withdrawResult = await _finanacialAccountService.Withdraw(
+                    dto.FromFinancialAccountId,
+                    ownerDiff,
+                    "Rental Adjustment - Owner Deposit زيادة"
+                    ,TransactionType.Withdraw
+                );
+
+                if (!withdrawResult.IsSuccess)
+                    return ApiResponse<ReturnedRentalDto>.Failure(withdrawResult.Message);
+            }
+            else if (ownerDiff < 0)
+            {
+                var depositResult = await _finanacialAccountService.Deposit(
+                    dto.FromFinancialAccountId,
+                    Math.Abs(ownerDiff),
+                    "Rental Adjustment - Owner Deposit استرجاع",
+                    TransactionType.Deposit
+                );
+
+                if (!depositResult.IsSuccess)
+                    return ApiResponse<ReturnedRentalDto>.Failure(depositResult.Message);
+            }
 
             await _context.SaveChangesAsync();
 
@@ -304,8 +370,8 @@ namespace RentalManagement.Services
                 .Collection(_ => _.RentalSales)
                 .Query()
                 .Include(_ => _.SalesRepresentative)
-                .ToListAsync(); 
-         
+                .ToListAsync();
+
             return ApiResponse<ReturnedRentalDto>.Success(_mapper.Map<ReturnedRentalDto>(rental));
         }
 
@@ -341,10 +407,10 @@ namespace RentalManagement.Services
 
         public async Task<ApiResponse<List<ReturnedRentalDto>>> ViewRentalsForEmployeeById(string EmployeeId)
         {
-            return await _rentalRepository.ViewRentalsForEmployeeById(EmployeeId); 
+            return await _rentalRepository.ViewRentalsForEmployeeById(EmployeeId);
         }
 
-       
+
 
         public async Task<ApiResponse<string>> CancelRental(int rentalId, RentalStatus rentalStatus, string? cancellationReason)
         {
@@ -354,21 +420,21 @@ namespace RentalManagement.Services
                  .ToListAsync();
 
             var rental = await _context.Rentals
-                .Include(_ =>_.RentalSettlement)
+                .Include(_ => _.RentalSettlement)
                 .FirstOrDefaultAsync(_ => _.Id == rentalId);
 
             if (rental == null)
             {
-                return ApiResponse<string>.Failure("No Rental is Found!"); 
+                return ApiResponse<string>.Failure("No Rental is Found!");
             }
-            
+
 
             if (rental.status == RentalStatus.Cancelled)
             {
                 return ApiResponse<string>.Failure("Rental has already cancelled!");
             }
-            var campainDiscount =await _systemSetting.GetCompainPercentage();
-            using var transaction =await _context.Database.BeginTransactionAsync();
+            var campainDiscount = await _systemSetting.GetCompainPercentage();
+            using var transaction = await _context.Database.BeginTransactionAsync();
             if (rentalStatus == RentalStatus.Cancelled)
             {
                 foreach (var item in res)
@@ -387,7 +453,7 @@ namespace RentalManagement.Services
             }
             else if (rentalStatus == RentalStatus.EarlyCheckout)
             {
-                
+
                 var today = DateOnly.FromDateTime(DateTime.Now);
 
                 if (today < rental.EndDate)
@@ -431,7 +497,7 @@ namespace RentalManagement.Services
                         if (item.SalesRepresentative == null) continue;
                         item.CommissionAmount = (item.CommissionPercentage / 100m) * commissionForUsedDays;
                     }
-                    
+
                     rental.status = RentalStatus.EarlyCheckout;
                     rental.CancellationReason = cancellationReason;
                 }
@@ -445,7 +511,7 @@ namespace RentalManagement.Services
 
         public async Task<ApiResponse<bool>> CompleteRental(int rentalId)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now); 
+            var today = DateOnly.FromDateTime(DateTime.Now);
             var rental = await _context.Rentals
                  .FirstOrDefaultAsync(_ => _.Id == rentalId);
             if (rental == null)
@@ -459,8 +525,223 @@ namespace RentalManagement.Services
 
             rental.status = RentalStatus.Completed;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true); 
-                
+            return ApiResponse<bool>.Success(true);
+
+        }
+
+        public async Task<ApiResponse<string>> AddSecurityDeposit(int rentalId, AddSecurityDepositDto dto)
+        {
+            if (dto.Amount <= 0)
+            {
+                return ApiResponse<string>.Failure("Amount Must be More than Zero!");
+            }
+            if (dto.Holder == SecurityFundHolder.Owner)
+            {
+                return ApiResponse<string>.Success("سيتم تحويل التأمين للمالك ولن يؤثر ذلك علي النظام");
+            }
+            var rental = await _context.Rentals
+                   .FirstOrDefaultAsync(_ => _.Id == rentalId);
+
+            if (rental == null)
+                return ApiResponse<string>.Failure("There is no Rental!");
+
+            var financialAccount = await _context.FinancialAccounts
+                .FirstOrDefaultAsync(_ => _.Id == dto.ToAccountId);
+
+            if (financialAccount == null)
+                return ApiResponse<string>.Failure("There is no Account!");
+
+
+            using var dbTransaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+
+                financialAccount.Balance += dto.Amount;
+
+                rental.SecurityDeposit += dto.Amount;
+
+                var transaction = new FinancialTransaction
+                {
+                    Amount = dto.Amount,
+                    RentalId = rentalId,
+                    FinancialAccountId = dto.ToAccountId,
+                    TransactionType = TransactionType.SecurityDeposit,
+                    Time = DateTime.UtcNow,
+                    Description = "Security Deposit Payment"
+                };
+
+                await _context.FinancialTransactions.AddAsync(transaction);
+
+                await _context.SaveChangesAsync();
+
+                await dbTransaction.CommitAsync();
+
+                return ApiResponse<string>.Success("Security deposit added successfully");
+            }
+            catch (Exception)
+            {
+                await dbTransaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<ApiResponse<string>> RefundSecurityDeposit(int rentalId, RefundSecurityDepositDto dto)
+        {
+            if (dto.Amount <= 0)
+            {
+                return ApiResponse<string>.Failure("Amount Must be More than Zero!");
+            }
+            if (dto.holder == SecurityFundHolder.Owner)
+            {
+                return ApiResponse<string>.Success("سيتم رد التأمين من خلال المالك ولن يؤثر ذلك علي النظام ");
+            }
+            var rental = await _context.Rentals
+                  .FirstOrDefaultAsync(_ => _.Id == rentalId);
+
+            if (rental == null)
+                return ApiResponse<string>.Failure("There is no Rental!");
+
+            var financialAccount = await _context.FinancialAccounts
+                .FirstOrDefaultAsync(_ => _.Id == dto.FromAccountId);
+
+            if (financialAccount == null)
+                return ApiResponse<string>.Failure("There is no Account!");
+
+
+            if (rental.SecurityDeposit < dto.Amount)
+            {
+                return ApiResponse<string>.Failure("خلي بالك كده التأمين اللي هترجعه ازيد من اللي العميل دفعه ");
+            }
+            string description = "";
+            if (rental.SecurityDeposit == dto.Amount) description = "تم رد التأمين بالكامل ";
+            else if (rental.SecurityDeposit > dto.Amount)
+            {
+                description = "تم رد جزء فقط من التأمين ";
+            }
+
+            using var dbTransaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                if (financialAccount.Balance < dto.Amount)
+                {
+                    return ApiResponse<string>.Failure("رصيد الحساب غير كافي ");
+                }
+                financialAccount.Balance -= dto.Amount;
+
+                rental.SecurityDeposit -= dto.Amount;
+
+                var transaction = new FinancialTransaction
+                {
+                    Amount = dto.Amount,
+                    RentalId = rentalId,
+                    FinancialAccountId = dto.FromAccountId,
+                    TransactionType = TransactionType.SecurityRefund,
+                    Time = DateTime.UtcNow,
+                    Description = description
+                };
+
+                await _context.FinancialTransactions.AddAsync(transaction);
+
+                await _context.SaveChangesAsync();
+
+                await dbTransaction.CommitAsync();
+
+                return ApiResponse<string>.Success("Security refund has been returned successfully");
+            }
+            catch (Exception)
+            {
+                await dbTransaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<ApiResponse<string>> PayRentRemainingCustomer(int rentalId, PayRentDto dto,string?comment)
+        {
+            var rental_settlement = await _context.RentalSettlements
+                             .FirstOrDefaultAsync(_ => _.RentalId == rentalId);
+
+            if (rental_settlement == null)
+            {
+                return ApiResponse<string>.Failure("RentalSettlement is not found!");
+            }
+            if (dto.Amount <= 0)
+            {
+                return ApiResponse<string>.Failure("Amount must be More than Zero");
+            }
+         
+            if (dto.Amount > rental_settlement.CustomerOutstanding)
+            {
+                return ApiResponse<string>.Failure("خلي بالك العميل عليه فلوس اقل من دي ");
+            }
+            using var transaction = await _context.Database.BeginTransactionAsync(); try
+            {
+
+                var depositResult = await _finanacialAccountService.Deposit(
+                         dto.ToAccountId,
+                         dto.Amount,
+                         comment,
+                         TransactionType.RentPayment
+                     );
+
+                if (!depositResult.IsSuccess)
+                    return depositResult;
+
+                rental_settlement.CustomerOutstanding -= dto.Amount;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+            return ApiResponse<string>.Success("Customer rent payment processed successfully.");
+        }
+
+        public async Task<ApiResponse<string>> PayRentRemainingOwner(int rentalId, PayRentDto dto,string?comment)
+        {
+            var rental_settlement = await _context.RentalSettlements
+                             .FirstOrDefaultAsync(_ => _.RentalId == rentalId);
+
+            if (rental_settlement == null)
+            {
+                return ApiResponse<string>.Failure("RentalSettlement is not found!");
+            }
+            if (dto.Amount <= 0)
+            {
+                return ApiResponse<string>.Failure("Amount must be More than Zero");
+            }
+            if (dto.Amount > rental_settlement.OwnerRemaining)
+            {
+                return ApiResponse<string>.Failure("خلي بالك ده اكبر من المتبقي للأونر");
+            }
+           
+            using var transaction = await _context.Database.BeginTransactionAsync(); try
+            {
+
+                var withdrawResult = await _finanacialAccountService.Withdraw(
+                         dto.FromAccountId,
+                         dto.Amount,
+                         comment,
+                         TransactionType.RentPayment
+                     );
+
+                if (!withdrawResult.IsSuccess)
+                    return withdrawResult;
+
+                rental_settlement.OwnerRemaining -= dto.Amount;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+            return ApiResponse<string>.Success("Owner payment completed successfully.");
         }
     }
 }

@@ -17,10 +17,9 @@ public class Rental
  
 
     // Payments (FACTS)
-    public decimal CustomerDeposit { get; set; }     // اللي العميل دفعه
-    public decimal? OwnerDeposit { get; set; }        // اللي المالك استلمه فعليًا
-    public decimal? SecurityDeposit { get; set; } // يرد بعد الاستلام
-
+    public decimal CustomerDeposit { get; set; }   
+    public decimal? OwnerDeposit { get; set; }        
+    public decimal? SecurityDeposit { get; set; } 
     // Campaign
     public bool HasCampaignDiscount { get; set; }
 

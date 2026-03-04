@@ -14,6 +14,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
 using RentalManagement.Mapping;
+using RentalManagement.Middleware;
+using Microsoft.AspNetCore.RateLimiting;
 
 
 namespace RentalManagement
@@ -87,6 +89,8 @@ namespace RentalManagement
             builder.Services.AddScoped<IPropertyRepository,PropertyRepository>();
             builder.Services.AddScoped<IUnitRepository, UnitRepository>();
             builder.Services.AddScoped<IRentalRepository, RentalRepository>();
+            builder.Services.AddScoped<IFinacialTransactionRepository, FinacialTransactionRepository>();
+            builder.Services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>(); 
 
 
             /* ===================== Services ===================== */
@@ -98,7 +102,9 @@ namespace RentalManagement
             builder.Services.AddScoped<IRentalService, RentalService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
             builder.Services.AddScoped<ICommissionService, CommissionService>();
-            builder.Services.AddScoped<ICacheService, InMeomoryCacheService>(); 
+            builder.Services.AddScoped<ICacheService, InMeomoryCacheService>();
+            builder.Services.AddScoped<IFinacialTransactionService , FinacialTransactionService>();
+            builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>(); 
          
 
             /* ===================== Mapping ===================== */
@@ -112,6 +118,25 @@ namespace RentalManagement
             /* ===================== FluentValidation ===================== */
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssemblyContaining<OwnerDtoValidator>();
+
+            /* ===================== RateLimitingMiddleWare ===================== */
+
+            builder.Services.AddRateLimiter(opt =>
+            {
+                opt.AddTokenBucketLimiter("token", _ =>
+                {
+                    _.TokenLimit = 5;
+                    _.TokensPerPeriod = 1;
+                    _.ReplenishmentPeriod = TimeSpan.FromSeconds(2);
+                    _.AutoReplenishment = true;
+                }
+
+
+
+                );
+
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -123,6 +148,7 @@ namespace RentalManagement
 
             }
 
+            app.UseMiddleware<ProfilingMiddleware>(); 
             //app.UseHttpsRedirection();
 
             app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());

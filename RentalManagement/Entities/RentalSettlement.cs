@@ -15,8 +15,6 @@
     public decimal OwnerPaid { get; set; }
     public decimal OwnerRemaining { get; set; }
 
-    // Company
-    public decimal? CompanyRevenue { get; set; }
 
     // Sales
     public decimal? SalesCommission { get; set; }

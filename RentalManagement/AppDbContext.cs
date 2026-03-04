@@ -101,7 +101,14 @@ namespace RentalManagement
 
             builder.Entity<ApplicationUser>()
                 .HasIndex(_ => _.UserName)
-                .IsUnique(); 
+                .IsUnique();
+           
+            builder.Entity<FinancialAccount>()
+                .HasIndex(_ => _.Name)
+                .IsUnique();
+
+            builder.Entity<FinancialTransaction>()
+                .HasIndex(_ => _.RentalId);
         }
 
         public DbSet<Rental> Rentals { get; set; }
@@ -112,7 +119,9 @@ namespace RentalManagement
         public DbSet<Property> Properties { get; set; }
         public DbSet<Unit> Units { get; set; }
         public DbSet<Owner> Owners { get; set; }
-        public DbSet<RentalManagement.JwtToken.RefreshToken> RefreshTokens { get; set; }
+        public DbSet<JwtToken.RefreshToken> RefreshTokens { get; set; }
         public DbSet<Campain> Campains { get; set; }
+        public DbSet<FinancialAccount> FinancialAccounts { get; set; }
+        public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
     }
 }

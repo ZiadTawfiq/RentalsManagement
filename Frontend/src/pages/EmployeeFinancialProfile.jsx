@@ -160,7 +160,7 @@ export default function EmployeeFinancialProfile() {
                                 Edit
                             </button>
                         </div>
-                        <h4 className="text-3xl font-black">${account?.baseMonthlySalary.toLocaleString()}</h4>
+                        <h4 className="text-3xl font-black">${(account?.baseMonthlySalary || 0).toLocaleString()}</h4>
                         <div className="pt-4 border-t border-white/10">
                             <p className="text-[10px] font-bold opacity-60 italic">Used to track monthly disbursement status</p>
                         </div>
@@ -195,7 +195,7 @@ export default function EmployeeFinancialProfile() {
                         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Salary Disbursed (This Month)</p>
                             <h3 className={`text-4xl font-black ${isSalaryFull ? 'text-emerald-600' : 'text-gray-900'}`}>
-                                ${summary?.totalSalaryPaid.toLocaleString()}
+                                ${(summary?.totalSalaryPaid || 0).toLocaleString()}
                             </h3>
                             {isSalaryFull && (
                                 <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase">
@@ -205,7 +205,7 @@ export default function EmployeeFinancialProfile() {
                         </div>
                         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Commissions Earned (This Month)</p>
-                            <h3 className="text-4xl font-black text-gray-900">${summary?.totalCommission.toLocaleString()}</h3>
+                            <h3 className="text-4xl font-black text-gray-900">${(summary?.totalCommission || 0).toLocaleString()}</h3>
                         </div>
                     </div>
 
@@ -309,7 +309,7 @@ export default function EmployeeFinancialProfile() {
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Monthly Status Check</label>
                                     {category === 'Salary' && movement === 'Deposit' && (
                                         <div className={`p-4 rounded-2xl text-[10px] font-bold ${isSalaryFull ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                            {isSalaryFull ? `Warning: ${summary?.totalSalaryPaid} already paid this month!` : `Safe: Only ${summary?.totalSalaryPaid} paid so far.`}
+                                            {isSalaryFull ? `Warning: ${summary?.totalSalaryPaid || 0} already paid this month!` : `Safe: Only ${summary?.totalSalaryPaid || 0} paid so far.`}
                                         </div>
                                     )}
                                 </div>

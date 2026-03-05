@@ -56,6 +56,8 @@ namespace RentalManagement.Repositories
             }
             account.accountType = dto.Type;
             account.Name = dto.Name;
+            if (dto.Balance.HasValue)
+                account.Balance = dto.Balance.Value;
             return "Account Updated Successfully"; 
 
         }

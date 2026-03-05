@@ -55,6 +55,12 @@ namespace RentalManagement.Mapping
                 .ForMember(d => d.RentalNotes, opt => opt.MapFrom(s => s.RentalNotes != null ? s.RentalNotes.OrderByDescending(n => n.CreatedAt).ToList() : new List<RentalNote>()))
                 .ForMember(d => d.LastNote, opt => opt.MapFrom(s => s.RentalNotes != null ? s.RentalNotes.OrderByDescending(n => n.CreatedAt).FirstOrDefault().Content : null));
 
+            CreateMap<EmployeeFinancialAccount, ReturnedEmployeeAccountDto>()
+                .ForMember(d => d.UserName, opt => opt.MapFrom(s => s.User != null ? s.User.UserName : "UNKNOWN"));
+
+            CreateMap<EmployeeTransaction, ReturnedEmployeeTransactionDto>()
+                .ForMember(d => d.PerformedByUserName, opt => opt.MapFrom(s => s.PerformedBy != null ? s.PerformedBy.UserName : "System"));
+
         }
     }
 }

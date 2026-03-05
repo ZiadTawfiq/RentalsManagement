@@ -104,7 +104,8 @@ namespace RentalManagement
             builder.Services.AddScoped<ICommissionService, CommissionService>();
             builder.Services.AddScoped<ICacheService, InMeomoryCacheService>();
             builder.Services.AddScoped<IFinacialTransactionService , FinacialTransactionService>();
-            builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>(); 
+            builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
+            builder.Services.AddScoped<IEmployeeFinancialService, EmployeeFinancialService>();
          
 
             /* ===================== Mapping ===================== */

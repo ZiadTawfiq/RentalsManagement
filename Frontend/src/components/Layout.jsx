@@ -4,25 +4,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     IoGridOutline, IoBusinessOutline, IoKeyOutline, IoPersonOutline,
     IoReceiptOutline, IoPeopleOutline, IoStatsChartOutline, IoMegaphoneOutline,
-    IoLogOutOutline, IoMenuOutline, IoChevronBackOutline, IoWalletOutline
+    IoLogOutOutline, IoMenuOutline, IoChevronBackOutline, IoWalletOutline,
+    IoCashOutline
 } from 'react-icons/io5';
 import logo from '../assets/logo.png';
+import { getAuthData } from '../utils/auth';
 
 export default function Layout() {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
 
+    const { role, isAdmin, isAccountant, isSalesRep } = getAuthData();
+
     const navItems = [
-        { path: '/', label: 'Dashboard', icon: <IoGridOutline />, category: null },
-        { path: '/properties', label: 'Properties', icon: <IoBusinessOutline />, category: 'Management' },
-        { path: '/units', label: 'Units', icon: <IoKeyOutline />, category: 'Management' },
-        { path: '/owners', label: 'Owners', icon: <IoPersonOutline />, category: 'Management' },
-        { path: '/rentals', label: 'Rentals', icon: <IoReceiptOutline />, category: 'Management' },
-        { path: '/employees', label: 'Employees', icon: <IoPeopleOutline />, category: 'Admin' },
-        { path: '/commission', label: 'Commissions', icon: <IoStatsChartOutline />, category: 'Admin' },
-        { path: '/campaigns', label: 'Campaigns', icon: <IoMegaphoneOutline />, category: 'Admin' },
-        { path: '/accounts', label: 'Accounts', icon: <IoWalletOutline />, category: 'Finance' },
+        { path: '/', label: 'Dashboard', icon: <IoGridOutline />, category: null, roles: ['Admin', 'Accountant', 'SalesRep', 'DataEntry'] },
+        { path: '/my-rentals', label: 'My Rentals', icon: <IoKeyOutline />, category: 'My Area', roles: ['SalesRep', 'Admin'] },
+        { path: '/my-performance', label: 'My Performance', icon: <IoStatsChartOutline />, category: 'My Area', roles: ['SalesRep', 'Admin'] },
+        { path: '/properties', label: 'Properties', icon: <IoBusinessOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
+        { path: '/units', label: 'Units', icon: <IoKeyOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
+        { path: '/owners', label: 'Owners', icon: <IoPersonOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
+        { path: '/rentals', label: 'Rentals', icon: <IoReceiptOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
+        { path: '/employees', label: 'Team', icon: <IoPeopleOutline />, category: 'Management', roles: ['Admin'] },
+        { path: '/employee-accounts', label: 'Employee Accounts', icon: <IoWalletOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
+        { path: '/campaigns', label: 'Campaigns', icon: <IoMegaphoneOutline />, category: 'Admin', roles: ['Admin'] },
+        { path: '/accounts', label: 'Financial Accounts', icon: <IoCashOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
     ];
+
+    const visibleNavItems = navItems.filter(item => {
+        if (!item.roles) return true;
+        if (Array.isArray(role)) {
+            return item.roles.some(r => role.includes(r));
+        }
+        return item.roles.includes(role);
+    });
 
     const handleSignOut = () => {
         localStorage.removeItem('token');
@@ -67,9 +81,9 @@ export default function Layout() {
 
                 {/* Navigation */}
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-                    {navItems.map((item, idx) => {
+                    {visibleNavItems.map((item, idx) => {
                         const isActive = location.pathname === item.path;
-                        const showCategory = item.category && (idx === 0 || navItems[idx - 1].category !== item.category);
+                        const showCategory = item.category && (idx === 0 || visibleNavItems[idx - 1].category !== item.category);
 
                         return (
                             <div key={item.path}>

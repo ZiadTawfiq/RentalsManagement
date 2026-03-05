@@ -11,6 +11,11 @@ import Campaigns from './pages/Campaigns';
 import FinancialAccounts from './pages/FinancialAccounts';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import SalesRepRentals from './pages/SalesRepRentals';
+import MyCommission from './pages/MyCommission';
+import EmployeeAccounts from './pages/EmployeeAccounts';
+import EmployeeFinancialProfile from './pages/EmployeeFinancialProfile';
+
 import { useEffect } from 'react';
 
 function App() {
@@ -33,9 +38,13 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/owners" element={<Owners />} />
             <Route path="/rentals" element={<Rentals />} />
+            <Route path="/my-rentals" element={<SalesRepRentals />} />
+            <Route path="/my-performance" element={<MyCommission />} />
             <Route path="/properties" element={<Properties />} />
             <Route path="/units" element={<Units />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/employee-accounts" element={<EmployeeAccounts />} />
+            <Route path="/employee-profile/:id" element={<EmployeeFinancialProfile />} />
             <Route path="/commission" element={<Commission />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/accounts" element={<FinancialAccounts />} />

@@ -9,5 +9,6 @@ namespace RentalManagement.DTOs
         public string Name { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public AccountType Type { get; set; }
+        public decimal? Balance { get; set; }
     }
 }

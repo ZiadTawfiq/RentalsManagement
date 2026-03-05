@@ -21,7 +21,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles ="Admin,Accountant")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> GetAll()
         {
 
@@ -38,7 +38,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles ="Admin,Accountant")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> GetById(string id)
         {
             var result = await _employeeService.GetEmployeeById(id);

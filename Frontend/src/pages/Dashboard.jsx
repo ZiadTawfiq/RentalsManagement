@@ -6,6 +6,7 @@ import {
     IoCheckmarkCircleOutline, IoCloseCircleOutline, IoExitOutline
 } from "react-icons/io5";
 import api from '../api/axios';
+import { getAuthData } from '../utils/auth';
 
 const StatCard = ({ title, value, icon, color, trend, delay }) => (
     <motion.div
@@ -41,6 +42,7 @@ const StatCard = ({ title, value, icon, color, trend, delay }) => (
 );
 
 export default function Dashboard() {
+    const { isSalesRep, userId, isAdmin, isAccountant } = getAuthData();
     const [stats, setStats] = useState({
         properties: 0,
         units: 0,
@@ -69,7 +71,14 @@ export default function Dashboard() {
                 api.get('Employee')
             ]);
 
-            const rentalData = rentals.data.data || [];
+            let rentalData = rentals.data.data || [];
+
+            // If SalesRep, filter rentals by their assignment
+            if (isSalesRep && !isAdmin && !isAccountant) {
+                rentalData = rentalData.filter(r =>
+                    r.sales?.some(rs => rs.salesRepresentativeId === userId)
+                );
+            }
 
             // Calculate detailed stats
             const calculations = rentalData.reduce((acc, r) => {
@@ -107,6 +116,8 @@ export default function Dashboard() {
         );
     }
 
+    const showAdminStats = !isSalesRep || isAdmin || isAccountant;
+
     return (
         <div className="space-y-8 pb-12">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -127,13 +138,15 @@ export default function Dashboard() {
 
             {/* Status Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title="Total Company commission"
-                    value={`$${stats.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    icon={<IoWalletOutline size={24} />}
-                    color="#3B82F6"
-                    delay={0.1}
-                />
+                {showAdminStats && (
+                    <StatCard
+                        title="Total Company commission"
+                        value={`$${stats.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        icon={<IoWalletOutline size={24} />}
+                        color="#3B82F6"
+                        delay={0.1}
+                    />
+                )}
                 <StatCard
                     title="Completed Rentals"
                     value={stats.completed}
@@ -158,13 +171,15 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard
-                    title="Active Units"
-                    value={stats.units}
-                    icon={<IoHomeOutline size={24} />}
-                    color="#6366F1"
-                    delay={0.5}
-                />
+                {showAdminStats && (
+                    <StatCard
+                        title="Active Units"
+                        value={stats.units}
+                        icon={<IoHomeOutline size={24} />}
+                        color="#6366F1"
+                        delay={0.5}
+                    />
+                )}
                 <StatCard
                     title="Active Rentals"
                     value={stats.active}
@@ -172,70 +187,44 @@ export default function Dashboard() {
                     color="#8B5CF6"
                     delay={0.6}
                 />
-                <StatCard
-                    title="Managed Assets"
-                    value={stats.properties}
-                    icon={<IoKeyOutline size={24} />}
-                    color="#EC4899"
-                    delay={0.7}
-                />
+                {showAdminStats && (
+                    <StatCard
+                        title="Managed Assets"
+                        value={stats.properties}
+                        icon={<IoKeyOutline size={24} />}
+                        color="#EC4899"
+                        delay={0.7}
+                    />
+                )}
             </div>
 
             {/* Additional Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Occupancy Card */}
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 }}
-                    className="bg-blue-600 p-8 rounded-[32px] shadow-xl shadow-blue-500/20 text-white relative overflow-hidden group"
-                >
-                    <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                        <IoStatsChartOutline size={120} />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-4 opacity-80">Portfolio Occupancy</h3>
-                    <div className="text-6xl font-black mb-6">
-                        {stats.units > 0 ? Math.round((stats.active / stats.units) * 100) : 0}%
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between text-xs font-bold">
-                            <span>Utilization</span>
-                            <span>Target: 95%</span>
-                        </div>
-                        <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${stats.units > 0 ? (stats.active / stats.units) * 100 : 0}%` }}
-                                transition={{ delay: 0.8, duration: 1 }}
-                                className="h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-                            />
-                        </div>
-                    </div>
-                </motion.div>
-
                 {/* Quick Operations Hub */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.9 }}
-                    className="lg:col-span-2 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm"
+                    className="lg:col-span-3 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm"
                 >
                     <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6 px-1">Quick Operations</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <a href="/rentals" className="flex items-center justify-between p-6 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all group font-black text-xs uppercase tracking-wider shadow-sm">
+                        <a href={isSalesRep && !isAdmin ? "/my-rentals" : "/rentals"} className="flex items-center justify-between p-6 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all group font-black text-xs uppercase tracking-wider shadow-sm">
                             <div className="flex items-center gap-4">
                                 <IoCalendarOutline size={24} className="group-hover:rotate-12 transition-transform" />
-                                <span>Lease Management Hub</span>
+                                <span>{isSalesRep && !isAdmin ? "My Area" : "Lease Management Hub"}</span>
                             </div>
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity">→</div>
                         </a>
-                        <a href="/units" className="flex items-center justify-between p-6 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all group font-black text-xs uppercase tracking-wider shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <IoHomeOutline size={24} className="group-hover:scale-110 transition-transform" />
-                                <span>Unit Portfolio</span>
-                            </div>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">→</div>
-                        </a>
+                        {showAdminStats && (
+                            <a href="/units" className="flex items-center justify-between p-6 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all group font-black text-xs uppercase tracking-wider shadow-sm">
+                                <div className="flex items-center gap-4">
+                                    <IoHomeOutline size={24} className="group-hover:scale-110 transition-transform" />
+                                    <span>Unit Portfolio</span>
+                                </div>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">→</div>
+                            </a>
+                        )}
                     </div>
                 </motion.div>
             </div>

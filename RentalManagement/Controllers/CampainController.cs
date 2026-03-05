@@ -7,7 +7,7 @@ namespace RentalManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class CampainController(AppDbContext context) : ControllerBase
     {
         // GET /api/Campain — list all campaign types
@@ -22,7 +22,6 @@ namespace RentalManagement.Controllers
 
         // GET /api/Campain/stats — each campaign with rental count
         [HttpGet("stats")]
-        [Authorize(Roles = "Admin,Accountant")]
         public async Task<IActionResult> GetStats()
         {
             var stats = await context.Campains
@@ -38,7 +37,6 @@ namespace RentalManagement.Controllers
 
         // POST /api/Campain — create new campaign type
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateCampainDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Type))
@@ -56,7 +54,6 @@ namespace RentalManagement.Controllers
 
         // DELETE /api/Campain/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var campain = await context.Campains.FindAsync(id);
@@ -70,7 +67,6 @@ namespace RentalManagement.Controllers
 
         // GET /api/Campain/{id}/rentals — rentals for a specific campaign channel
         [HttpGet("{id}/rentals")]
-        [Authorize(Roles = "Admin,Accountant")]
         public async Task<IActionResult> GetRentals(int id)
         {
             var rentals = await context.Rentals

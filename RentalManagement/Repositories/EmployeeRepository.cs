@@ -48,28 +48,23 @@ namespace RentalManagement.Repositories
             {
              
 
-                var userWithRoles = await (
-                from user in _context.Users
-                join userRole in _context.UserRoles
-                      on user.Id equals userRole.UserId
-                join role in _context.Roles
-                      on userRole.RoleId equals role.Id
-                group role by user into g
-                select new ReturnedEmployeeDto
+                var users = await _context.Users.ToListAsync();
+                var userWithRoles = new List<ReturnedEmployeeDto>();
+
+                foreach (var user in users)
                 {
-                    Id = g.Key.Id,
-                    UserName = g.Key.UserName ?? "N/A", 
-                    Roles = g.Select( _ => _.Name).ToList(),
-                    PropertyId = g.Key.PropertyId ?? 0,
-                    PhoneNumber = g.Key.PhoneNumber?? "N/A"
-                    
-                }).ToListAsync();
-
-                return userWithRoles; 
-               
-
-      
-            } ,TimeSpan.FromHours(6));
+                    var roles = await _userManager.GetRolesAsync(user);
+                    userWithRoles.Add(new ReturnedEmployeeDto
+                    {
+                        Id = user.Id,
+                        UserName = user.UserName ?? "N/A",
+                        Roles = roles.ToList(),
+                        PropertyId = user.PropertyId ?? 0,
+                        PhoneNumber = user.PhoneNumber ?? "N/A"
+                    });
+                }
+                return userWithRoles;
+            } ,TimeSpan.FromMinutes(10));
             return ApiResponse<List<ReturnedEmployeeDto>>.Success(employeesList); 
            
 

@@ -60,10 +60,8 @@ namespace RentalManagement.Services
                 CustomerFullName = dto.CustomerFullName,
                 CustomerPhoneNumber = dto.CustomerPhoneNumber,
                 ReservationTime = DateTime.Now,
-                status = RentalStatus.Active
-
-
-
+                status = RentalStatus.Active,
+                CreatedByEmployeeId = UserId
             };
             if (!string.IsNullOrEmpty(dto.Notes))
             {
@@ -147,7 +145,8 @@ namespace RentalManagement.Services
             if (!string.IsNullOrEmpty(dto.SalesRepId))
             {
                 query = query.Where(r =>
-                    r.RentalSales.Any(rs => rs.SalesRepresentativeId == dto.SalesRepId));
+                    r.RentalSales.Any(rs => rs.SalesRepresentativeId == dto.SalesRepId) ||
+                    r.CreatedByEmployeeId == dto.SalesRepId);
             }
 
             if (dto.unitId.HasValue)
@@ -431,7 +430,13 @@ namespace RentalManagement.Services
 
             if (rental.status == RentalStatus.Cancelled)
             {
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                if (today >= rental.EndDate)
+                {
+                    return ApiResponse<string>.Failure("Rental has already ended!");
+                }
                 return ApiResponse<string>.Failure("Rental has already cancelled!");
+                
             }
             var campainDiscount = await _systemSetting.GetCompainPercentage();
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -454,10 +459,12 @@ namespace RentalManagement.Services
             else if (rentalStatus == RentalStatus.EarlyCheckout)
             {
 
-                var today = DateOnly.FromDateTime(DateTime.Now);
-
-                if (today < rental.EndDate)
-                {
+                    var today = DateOnly.FromDateTime(DateTime.Now);
+                    if (today  < rental.StartDate)
+                    {
+                        return ApiResponse<string>.Failure("Today is before the start date!");
+                    }
+                
                     rental.CheckoutDate = today;
                     var totalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber);
                     var usedDays = (today.DayNumber - rental.StartDate.DayNumber) + 1;
@@ -501,7 +508,7 @@ namespace RentalManagement.Services
                     rental.status = RentalStatus.EarlyCheckout;
                     rental.CancellationReason = cancellationReason;
                 }
-            }
+            
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 

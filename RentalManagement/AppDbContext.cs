@@ -109,6 +109,32 @@ namespace RentalManagement
 
             builder.Entity<FinancialTransaction>()
                 .HasIndex(_ => _.RentalId);
+
+            // Employee Financials
+            builder.Entity<EmployeeFinancialAccount>()
+                .HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<EmployeeTransaction>()
+                .HasOne(et => et.EmployeeFinancialAccount)
+                .WithMany()
+                .HasForeignKey(et => et.EmployeeFinancialAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<EmployeeTransaction>()
+                .HasOne(et => et.PerformedBy)
+                .WithMany()
+                .HasForeignKey(et => et.PerformedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Rental Creator
+            builder.Entity<Rental>()
+                .HasOne(r => r.CreatedByEmployee)
+                .WithMany()
+                .HasForeignKey(r => r.CreatedByEmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
         public DbSet<Rental> Rentals { get; set; }
@@ -123,5 +149,7 @@ namespace RentalManagement
         public DbSet<Campain> Campains { get; set; }
         public DbSet<FinancialAccount> FinancialAccounts { get; set; }
         public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
+        public DbSet<EmployeeFinancialAccount> EmployeeFinancialAccounts { get; set; }
+        public DbSet<EmployeeTransaction> EmployeeTransactions { get; set; }
     }
 }

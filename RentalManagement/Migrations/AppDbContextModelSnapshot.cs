@@ -322,7 +322,7 @@ namespace RentalManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Campains");
+                    b.ToTable("Campains", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.FinancialAccount", b =>
@@ -348,7 +348,7 @@ namespace RentalManagement.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("FinancialAccounts");
+                    b.ToTable("FinancialAccounts", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.FinancialTransaction", b =>
@@ -361,6 +361,9 @@ namespace RentalManagement.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DepositHolder")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -386,7 +389,7 @@ namespace RentalManagement.Migrations
 
                     b.HasIndex("RentalId");
 
-                    b.ToTable("FinancialTransactions");
+                    b.ToTable("FinancialTransactions", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.Owner", b =>
@@ -500,7 +503,7 @@ namespace RentalManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SystemSettings");
+                    b.ToTable("SystemSettings", (string)null);
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.Unit", b =>
@@ -565,7 +568,7 @@ namespace RentalManagement.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("RentalSettlement", b =>

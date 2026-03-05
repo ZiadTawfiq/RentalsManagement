@@ -21,6 +21,7 @@ namespace RentalManagement.DTOs
         public string? UnitCode { get; set; }
         public string? OwnerName { get; set; }
         public string? ClientName { get; set; }
+        public string? ClientPhone { get; set; }
         public List<SalesEntryDto> Sales { get; set; } = [];
 
         public string? DepositHolder { get; set; }

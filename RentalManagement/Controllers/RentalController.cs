@@ -21,7 +21,7 @@ namespace RentalManagement.Controllers
        
         [HttpPost]
         [Route("create")]
-        [Authorize(Roles = "Admin,DataEntry,Accountant")]
+        [Authorize(Roles = "Admin,DataEntry")]
         public async Task<IActionResult> CreateRental([FromBody] CreateRentalDto dto,[FromQuery]string? comment)
         {
             string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System"; 
@@ -31,7 +31,7 @@ namespace RentalManagement.Controllers
 
     
         [HttpPut("update")]
-        [Authorize(Roles = "Admin,DataEntry,Accountant")]
+        [Authorize(Roles = "Admin,DataEntry")]
 
         public async Task<IActionResult> UpdateRental([FromBody] UpdateRentalDto dto)
         {
@@ -97,7 +97,7 @@ namespace RentalManagement.Controllers
             return Ok(result);
         }
         [HttpPut("{rentalId}/complete")]
-        [Authorize(Roles ="Accountant,Admin")]
+        [Authorize(Roles ="Accountant,Admin,Operation")]
         public async Task<IActionResult> CompleteRental([FromRoute]int rentalId)
         {
             var result = await _rentalService.CompleteRental(rentalId);

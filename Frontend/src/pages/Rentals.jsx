@@ -19,6 +19,7 @@ export default function Rentals() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRental, setEditingRental] = useState(null);
     const [newNote, setNewNote] = useState('');
+    const [rowNotes, setRowNotes] = useState({}); // Tracking notes for individual rows
     const [submittingNote, setSubmittingNote] = useState(false);
     const [campaigns, setCampaigns] = useState([]);
     const [campaignError, setCampaignError] = useState(null);
@@ -149,7 +150,8 @@ export default function Rentals() {
                         campainId: r.campainId || r.CampainId,
                         hasCampaignDiscount: r.hasCampaignDiscount || r.HasCampaignDiscount,
                         customerOutstanding: r.customerOutstanding || r.CustomerOutstanding || 0,
-                        ownerRemaining: r.ownerRemaining || r.OwnerRemaining || 0
+                        ownerRemaining: r.ownerRemaining || r.OwnerRemaining || 0,
+                        holder: r.holder ?? r.Holder ?? null
                     };
                 });
 
@@ -420,15 +422,16 @@ export default function Rentals() {
         }
     };
 
-    const handleAddNote = async (rentalId) => {
-        if (!newNote.trim()) return;
+    const handleAddNote = async (rentalId, noteContent = null) => {
+        const content = noteContent !== null ? noteContent : newNote;
+        if (!content.trim()) return;
         setSubmittingNote(true);
         try {
-            const response = await api.post(`Rental/${rentalId}/notes`, { content: newNote });
+            const response = await api.post(`Rental/${rentalId}/notes`, { content: content });
             if (response.data.isSuccess) {
-                // We don't need to alert success, just update or refresh
-                await fetchData(); // Refresh to get proper mapping
-                setNewNote('');
+                await fetchData();
+                if (noteContent === null) setNewNote('');
+                else setRowNotes(prev => ({ ...prev, [rentalId]: '' }));
             }
         } catch (err) {
             alert('Error adding note: ' + err.message);
@@ -683,7 +686,7 @@ export default function Rentals() {
                     <tbody className="divide-y divide-gray-50">
                         {filteredRentals.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-12 text-center text-gray-400 font-medium">
+                                <td colSpan="7" className="px-6 py-12 text-center text-gray-400 font-medium">
                                     {rentals.length === 0
                                         ? 'No rental contracts found in the system.'
                                         : 'No rental contracts match your search criteria.'}
@@ -812,11 +815,53 @@ export default function Rentals() {
                                                         <span className="text-gray-700">${Number(rental.ownerRemaining || 0).toLocaleString()}</span>
                                                     </div>
                                                 </div>
+                                                {/* Security Deposit */}
+                                                {rental.securityDeposit > 0 && (
+                                                    <div className="flex items-center justify-between gap-1.5 mt-1 border-t border-purple-100 pt-1">
+                                                        <div className="flex items-center gap-1 text-[9px] font-black text-purple-500 uppercase">
+                                                            <IoLockClosed size={9} />
+                                                            Sec. Dep:
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-black text-purple-600">${Number(rental.securityDeposit).toLocaleString()}</span>
+                                                            <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase
+                                                                ${(rental.holder === 0 || rental.holder === 'Company')
+                                                                    ? 'bg-blue-50 text-blue-600'
+                                                                    : (rental.holder === 1 || rental.holder === 'Owner')
+                                                                        ? 'bg-orange-50 text-orange-600'
+                                                                        : 'bg-gray-100 text-gray-400'}`}>
+                                                                {(rental.holder === 0 || rental.holder === 'Company') ? 'Company'
+                                                                    : (rental.holder === 1 || rental.holder === 'Owner') ? 'Owner'
+                                                                        : 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {rental.lastNote && (
                                                     <div className="text-[10px] text-gray-400 italic truncate max-w-[150px] mt-1" title={rental.lastNote}>
                                                         "{rental.lastNote}"
                                                     </div>
                                                 )}
+                                                {/* Fast Note Input */}
+                                                <div className="mt-2 flex gap-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Add quick note..."
+                                                        className="text-[10px] px-2 py-1 border border-gray-100 rounded-lg flex-1 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                        value={rowNotes[rental.id] || ''}
+                                                        onChange={(e) => setRowNotes(prev => ({ ...prev, [rental.id]: e.target.value }))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleAddNote(rental.id, rowNotes[rental.id]);
+                                                        }}
+                                                    />
+                                                    <button
+                                                        onClick={() => handleAddNote(rental.id, rowNotes[rental.id])}
+                                                        disabled={submittingNote || !rowNotes[rental.id]?.trim()}
+                                                        className="text-[10px] font-black text-blue-600 hover:text-blue-700 disabled:opacity-30"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -855,7 +900,7 @@ export default function Rentals() {
                                                         <IoArrowForward size={18} />
                                                     </button>
                                                 )}
-                                                {isActive && (rental.securityDeposit > 0) && (
+                                                {isActive && (
                                                     <>
                                                         <button
                                                             onClick={() => handleOpenSecDep(rental, 'add')}

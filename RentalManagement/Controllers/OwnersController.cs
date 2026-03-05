@@ -7,7 +7,7 @@ namespace RentalManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles ="Admin,DataEntry,Accountant")]
+    [Authorize(Roles = "Admin,DataEntry,Accountant")]
     public class OwnerController : ControllerBase
     {
         private readonly IOwnerService _ownerService;

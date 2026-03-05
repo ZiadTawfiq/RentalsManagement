@@ -273,6 +273,7 @@ namespace RentalManagement.Services
                 UnitCode          = t.Rental?.Unit?.Code,
                 OwnerName         = t.Rental?.Owner?.Name,
                 ClientName        = t.Rental?.CustomerFullName,
+                ClientPhone       = t.Rental?.CustomerPhoneNumber,
                 Sales             = t.Rental?.RentalSales?.Select(rs => new SalesEntryDto
                 {
                     SalesRepName = rs.SalesRepresentative?.UserName ?? "",

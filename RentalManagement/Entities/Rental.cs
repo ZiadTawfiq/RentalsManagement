@@ -50,4 +50,7 @@ public class Rental
     public int? campainId { get; set;  }
     public Campain? campain { get; set; }
 
+    public string? CreatedByEmployeeId { get; set; }
+    public ApplicationUser? CreatedByEmployee { get; set; }
+
 }

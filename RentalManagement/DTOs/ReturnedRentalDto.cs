@@ -26,6 +26,9 @@ namespace RentalManagement.DTOs
         public decimal? OwnerDeposit { get; set; }
         public decimal? SecurityDeposit { get; set; }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public SecurityFundHolder? holder { get; set; }
+
         public int TotalDays { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal CustomerOutstanding { get; set; }

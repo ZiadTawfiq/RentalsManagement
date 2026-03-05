@@ -6,13 +6,13 @@ using RentalManagement.Services;
 namespace RentalManagement.Controllers
 {
     [ApiController]
-    [Route("api/Commission")]
+    [Route("api/[controller]")]
     public class CommissionController(ICommissionService _commissionService):ControllerBase
     {
        
         [HttpGet]
         [Route("AllSalesRep")]
-        [Authorize(Roles = "Admin,Accountant")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCommissionForAllSalesRep()
         {
             var res = await _commissionService.GetAllSalesRepCommission();
@@ -24,7 +24,7 @@ namespace RentalManagement.Controllers
         }
         [HttpGet]
         [Route("Campaign")]
-        [Authorize(Roles ="Admin,Accountant")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> GetCampaignCommission()
         {
             var result =
@@ -33,7 +33,7 @@ namespace RentalManagement.Controllers
             return Ok(result);
         }
         [HttpPost("filter")]
-        [Authorize(Roles = "Admin,Accountant")]
+        [Authorize(Roles = "Admin,SalesRep,TeamLead")]
         public async Task<IActionResult> FilterCommission([FromBody] CommissionFilterDto dto)
         {
             var result = await _commissionService.FilterCommission(dto);

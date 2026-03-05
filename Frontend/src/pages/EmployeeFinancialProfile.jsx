@@ -250,7 +250,7 @@ export default function EmployeeFinancialProfile() {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl p-8 space-y-6"
+                            className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar"
                         >
                             <div className="flex items-center justify-between border-b pb-6">
                                 <h2 className="text-2xl font-black text-gray-900">Wallet Action</h2>
@@ -300,7 +300,7 @@ export default function EmployeeFinancialProfile() {
                                         type="number"
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
-                                        className="w-full p-5 bg-gray-50 border-none rounded-[32px] outline-none font-black text-2xl placeholder:text-gray-200"
+                                        className="w-full p-4 bg-gray-50 border-none rounded-[24px] outline-none font-black text-xl placeholder:text-gray-200"
                                         placeholder="0.00"
                                     />
                                 </div>
@@ -321,7 +321,7 @@ export default function EmployeeFinancialProfile() {
                                     onChange={e => setDescription(e.target.value)}
                                 />
 
-                                <button type="submit" className="w-full py-5 bg-emerald-600 text-white rounded-[32px] font-black uppercase tracking-widest text-sm hover:shadow-xl hover:shadow-emerald-500/20 transition-all active:scale-95">
+                                <button type="submit" className="w-full py-4 bg-emerald-600 text-white rounded-[24px] font-black uppercase tracking-widest text-xs hover:shadow-xl hover:shadow-emerald-500/20 transition-all active:scale-95">
                                     Execute
                                 </button>
                             </form>

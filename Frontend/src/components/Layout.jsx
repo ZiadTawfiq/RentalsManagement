@@ -18,8 +18,8 @@ export default function Layout() {
 
     const navItems = [
         { path: '/', label: 'Dashboard', icon: <IoGridOutline />, category: null, roles: ['Admin', 'Accountant', 'SalesRep', 'DataEntry'] },
-        { path: '/my-rentals', label: 'My Rentals', icon: <IoKeyOutline />, category: 'My Area', roles: ['SalesRep', 'Admin'] },
-        { path: '/my-performance', label: 'My Performance', icon: <IoStatsChartOutline />, category: 'My Area', roles: ['SalesRep', 'Admin'] },
+        { path: '/my-rentals', label: 'My Rentals', icon: <IoKeyOutline />, category: 'My Area', roles: ['SalesRep'] },
+        { path: '/my-performance', label: 'My Performance', icon: <IoStatsChartOutline />, category: 'My Area', roles: ['SalesRep'] },
         { path: '/properties', label: 'Properties', icon: <IoBusinessOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
         { path: '/units', label: 'Units', icon: <IoKeyOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
         { path: '/owners', label: 'Owners', icon: <IoPersonOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },

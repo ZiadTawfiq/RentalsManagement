@@ -129,6 +129,19 @@ namespace RentalManagement
                 .HasForeignKey(et => et.PerformedById)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Earnings History
+            builder.Entity<EarningsHistory>()
+                .HasOne(eh => eh.EmployeeFinancialAccount)
+                .WithMany()
+                .HasForeignKey(eh => eh.EmployeeFinancialAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<EarningsHistory>()
+                .HasOne(eh => eh.PerformedBy)
+                .WithMany()
+                .HasForeignKey(eh => eh.PerformedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Rental Creator
             builder.Entity<Rental>()
                 .HasOne(r => r.CreatedByEmployee)
@@ -151,5 +164,10 @@ namespace RentalManagement
         public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
         public DbSet<EmployeeFinancialAccount> EmployeeFinancialAccounts { get; set; }
         public DbSet<EmployeeTransaction> EmployeeTransactions { get; set; }
+        public DbSet<EarningsHistory> EarningsHistories { get; set; }
+        public DbSet<Asset> Assets { get; set; }
+        public DbSet<AssetTransaction> AssetTransactions { get; set; }
+        public DbSet<ExternalAccount> ExternalAccounts { get; set; }
+        public DbSet<ExternalTransaction> ExternalTransactions { get; set; }
     }
 }

@@ -11,6 +11,7 @@ import { getAuthData } from '../utils/auth';
 export default function MyCommission() {
     const { userId, isSalesRep } = getAuthData();
     const [rentals, setRentals] = useState([]);
+    const [allRentals, setAllRentals] = useState([]);
     const [units, setUnits] = useState([]);
     const [account, setAccount] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -30,15 +31,22 @@ export default function MyCommission() {
     const fetchData = async () => {
         setLoading(true);
         try {
+            const targetUserId = userId; // Just use userId directly since this is MyCommission
+
             const filterDto = {
                 propertyId: filterProperty ? parseInt(filterProperty) : null,
                 startDate: filterStartDate || null,
                 endDate: filterEndDate || null,
-                salesRepId: userId // Ensure we filter for THIS rep in backend
+                salesRepId: targetUserId
             };
 
-            const [rentalsRes, unitsRes, accountRes] = await Promise.all([
+            const allFilterDto = {
+                salesRepId: targetUserId
+            };
+
+            const [rentalsRes, allRentalsRes, unitsRes, accountRes] = await Promise.all([
                 api.post('Rental/Filter', filterDto),
+                api.post('Rental/Filter', allFilterDto),
                 api.get('Unit'),
                 api.get('EmployeeFinancial/MyAccount')
             ]);
@@ -47,16 +55,15 @@ export default function MyCommission() {
             if (accountRes.data.isSuccess) setAccount(accountRes.data.data);
 
             let data = rentalsRes.data.isSuccess ? (rentalsRes.data.data || []) : [];
+            let allData = allRentalsRes.data.isSuccess ? (allRentalsRes.data.data || []) : [];
 
-            // Backend Filter should handle it, but safety check:
-            if (userId) {
-                data = data.filter(r =>
-                    r.sales?.some(rs => rs.salesRepresentativeId === userId) ||
-                    r.createdByEmployeeId === userId
-                );
+            if (targetUserId) {
+                data = data.filter(r => r.sales?.some(rs => rs.salesRepresentativeId === targetUserId) || r.createdByEmployeeId === targetUserId);
+                allData = allData.filter(r => r.sales?.some(rs => rs.salesRepresentativeId === targetUserId) || r.createdByEmployeeId === targetUserId);
             }
 
             setRentals(data);
+            setAllRentals(allData);
         } catch (err) {
             console.error('Error fetching commission data:', err);
         } finally {
@@ -76,7 +83,7 @@ export default function MyCommission() {
         r.customerFullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalBaseCommission = filteredRentals.reduce((sum, r) => {
+    const totalBaseCommission = allRentals.reduce((sum, r) => {
         const mySale = r.sales?.find(rs => rs.salesRepresentativeId === userId);
         return sum + (mySale?.commissionAmount || 0);
     }, 0);
@@ -179,9 +186,9 @@ export default function MyCommission() {
                         <IoTrendingUpOutline size={120} />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Period Base Commission</p>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Total Commission Lifetime</p>
                         <h3 className="text-4xl font-black text-emerald-700">${totalBaseCommission.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
-                        <p className="text-[10px] font-bold text-emerald-600/60 mt-2 uppercase">Sum of {filteredRentals.length} rentals in view</p>
+                        <p className="text-[10px] font-bold text-emerald-600/60 mt-2 uppercase">Sum of {allRentals.length} total rentals</p>
                     </div>
                 </div>
             </div>

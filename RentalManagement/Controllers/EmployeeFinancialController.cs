@@ -20,7 +20,7 @@ namespace RentalManagement.Controllers
         }
 
         [HttpGet("AllAccounts")]
-        [Authorize(Roles = "Admin,Accountant")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllAccounts()
         {
             var result = await _employeeFinancialService.GetAllAccounts();
@@ -64,27 +64,37 @@ namespace RentalManagement.Controllers
             return Ok(result);
         }
 
+        [HttpPost("AddEarnings")]
+        [Authorize(Roles = "Admin,Accountant")]
+        public async Task<IActionResult> AddEarnings([FromBody] AddEarningsDto dto)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var result = await _employeeFinancialService.AddEarnings(dto, userId ?? "Unknown");
+            return Ok(result);
+        }
+
         [HttpGet("MonthlySummary/{accountId}/{year}/{month}")]
         public async Task<IActionResult> GetMonthlySummary(int accountId, int year, int month)
         {
-            var result = await _employeeFinancialService.GetMonthlySummary(accountId, year, month);
+            var result = await _employeeFinancialService.GetMonthlySummaryOrYearly(accountId, year, month);
             return Ok(result);
         }
 
         [HttpGet("Transactions/{accountId}")]
+        [Authorize(Roles ="Admin,Accountan")]
         public async Task<IActionResult> GetTransactions(int accountId)
         {
-            // Security: check if Admin/Accountant or the owner of the account
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isAdminOrAccountant = User.IsInRole("Admin") || User.IsInRole("Accountant");
-
-            if (!isAdminOrAccountant)
-            {
-                var accountResult = await _employeeFinancialService.GetAccountByUserId(userId);
-                if (accountResult.Data.Id != accountId) return Forbid();
-            }
+           
 
             var result = await _employeeFinancialService.GetAccountTransactions(accountId);
+            return Ok(result);
+        }
+
+        [HttpGet("EarningsHistory/{accountId}")]
+        [Authorize(Roles = "Admin,Accountant")]
+        public async Task<IActionResult> GetEarningsHistory(int accountId)
+        {
+            var result = await _employeeFinancialService.GetEarningsHistory(accountId);
             return Ok(result);
         }
     }

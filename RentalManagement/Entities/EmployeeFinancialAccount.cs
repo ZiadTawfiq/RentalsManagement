@@ -10,11 +10,14 @@ namespace RentalManagement.Entities
         [ForeignKey("UserId")]
         public ApplicationUser User { get; set; }
 
-        public decimal Salary { get; set; } = 0;
-        public decimal BaseMonthlySalary { get; set; } = 0; // The fixed salary amount per month
-        public decimal CommissionBalance { get; set; } = 0;
-        public decimal BonusBalance { get; set; } = 0;
-        public decimal LoanBalance { get; set; } = 0;
+        public decimal SalaryForCurrentMonth { get; set; } 
+        public decimal BaseMonthlySalary { get; set; }  
+        public decimal RemainingMonthlySalary { get; set; }
+        public decimal CommissionBalance { get; set; } 
+        public decimal RemainingCommission { get; set; }
+        public decimal TotalBonusBalance { get; set; }
+        public decimal RemainingBonusBalance { get; set; }
+        public decimal LoanBalance { get; set; }
 
         public DateTime LastUpdated { get; set; } = DateTime.Now;
     }

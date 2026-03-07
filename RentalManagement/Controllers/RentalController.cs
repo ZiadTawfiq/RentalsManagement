@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
@@ -70,7 +70,7 @@ namespace RentalManagement.Controllers
             var res = await _rentalService.DeleteRental(Id);
             return Ok(res); 
         }
-        [HttpGet]
+        [HttpPost]
         [Route("Filter")]
         [Authorize(Roles = "Admin,Accountant")]
         public async Task<IActionResult> Filter([FromBody] RentalFilterDto dto)

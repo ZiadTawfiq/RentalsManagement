@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using RentalManagement.DTOs;
 using RentalManagement.Entities;
 
@@ -56,10 +56,34 @@ namespace RentalManagement.Mapping
                 .ForMember(d => d.LastNote, opt => opt.MapFrom(s => s.RentalNotes != null ? s.RentalNotes.OrderByDescending(n => n.CreatedAt).FirstOrDefault().Content : null));
 
             CreateMap<EmployeeFinancialAccount, ReturnedEmployeeAccountDto>()
-                .ForMember(d => d.UserName, opt => opt.MapFrom(s => s.User != null ? s.User.UserName : "UNKNOWN"));
+                .ForMember(d => d.UserName, opt => opt.MapFrom(s => s.User != null ? s.User.UserName : "UNKNOWN"))
+                .ForMember(d => d.BaseMonthlySalary, opt => opt.MapFrom(s => s.BaseMonthlySalary))
+                .ForMember(d => d.RemainingMonthlySalary, opt => opt.MapFrom(s => s.RemainingMonthlySalary))
+                .ForMember(d => d.TotalBonusBalance, opt => opt.MapFrom(s => s.TotalBonusBalance))
+                .ForMember(d => d.RemainingBonusBalance, opt => opt.MapFrom(s => s.RemainingBonusBalance))
+                .ForMember(d => d.BonusBalance, opt => opt.MapFrom(s => s.TotalBonusBalance)); // For backward compatibility
 
             CreateMap<EmployeeTransaction, ReturnedEmployeeTransactionDto>()
+                .ForMember(d => d.PerformedByUserName, opt => opt.MapFrom(s => s.PerformedBy != null ? s.PerformedBy.UserName : "System"))
+                .ForMember(d => d.Movement, opt => opt.MapFrom(s => s.Type == TransactionType.Deposit ? MoneyMovement.Deposit : MoneyMovement.Withdraw));
+
+            CreateMap<EarningsHistory, ReturnedEarningsHistoryDto>()
                 .ForMember(d => d.PerformedByUserName, opt => opt.MapFrom(s => s.PerformedBy != null ? s.PerformedBy.UserName : "System"));
+
+            CreateMap<Asset, ReturnedAssetDto>();
+            CreateMap<AssetDto, Asset>();
+
+            CreateMap<AssetTransaction, ReturnedAssetTransactionDto>()
+                .ForMember(d => d.AssetName, opt => opt.MapFrom(s => s.Asset != null ? s.Asset.Name : "N/A"))
+                .ForMember(d => d.PerformedByUserName, opt => opt.MapFrom(s => s.PerformedBy != null ? s.PerformedBy.UserName : "System"));
+
+            CreateMap<ExternalAccountDto, ExternalAccount>();
+            CreateMap<ExternalAccount, ReturnedExternalAccountDto>()
+                .ForMember(dest => dest.Balances, opt => opt.Ignore());
+            CreateMap<ExternalTransactionDto, ExternalTransaction>();
+            CreateMap<ExternalTransaction, ReturnedExternalTransactionDto>()
+                .ForMember(dest => dest.ExternalAccountName, opt => opt.MapFrom(src => src.ExternalAccount != null ? src.ExternalAccount.Name : ""))
+                .ForMember(dest => dest.PerformedByUserName, opt => opt.MapFrom(src => src.PerformedBy != null ? src.PerformedBy.UserName : "System"));
 
         }
     }

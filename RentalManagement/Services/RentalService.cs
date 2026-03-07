@@ -469,7 +469,8 @@ namespace RentalManagement.Services
                     var totalDays = (rental.EndDate.DayNumber - rental.StartDate.DayNumber);
                     var usedDays = (today.DayNumber - rental.StartDate.DayNumber) + 1;
 
-                    if (totalDays <= 0) totalDays = 1; // Avoid division by zero
+                    if (totalDays <= 0) totalDays = 1; 
+
                     if (usedDays < 0) usedDays = 0;
                     if (usedDays > totalDays) usedDays = totalDays;
 

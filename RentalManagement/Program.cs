@@ -106,6 +106,8 @@ namespace RentalManagement
             builder.Services.AddScoped<IFinacialTransactionService , FinacialTransactionService>();
             builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
             builder.Services.AddScoped<IEmployeeFinancialService, EmployeeFinancialService>();
+            builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IExternalAccountService, ExternalAccountService>();
          
 
             /* ===================== Mapping ===================== */
@@ -156,6 +158,7 @@ namespace RentalManagement
 
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseStaticFiles();
 
             app.MapGet("/", () => Results.Redirect("/swagger"));
             app.MapControllers();

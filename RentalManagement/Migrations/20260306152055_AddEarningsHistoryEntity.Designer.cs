@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RentalManagement;
 
@@ -11,9 +12,11 @@ using RentalManagement;
 namespace RentalManagement.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306152055_AddEarningsHistoryEntity")]
+    partial class AddEarningsHistoryEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -313,68 +316,6 @@ namespace RentalManagement.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("RentalManagement.Entities.Asset", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Assets");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.AssetTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AssetId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PerformedById")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("QuantityChanged")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssetId");
-
-                    b.HasIndex("PerformedById");
-
-                    b.ToTable("AssetTransactions");
-                });
-
             modelBuilder.Entity("RentalManagement.Entities.Campain", b =>
                 {
                     b.Property<int>("Id")
@@ -514,75 +455,6 @@ namespace RentalManagement.Migrations
                     b.HasIndex("PerformedById");
 
                     b.ToTable("EmployeeTransactions");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.ExternalAccount", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ExternalAccounts");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.ExternalTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ExternalAccountId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PerformedById")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProofImagePath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExternalAccountId");
-
-                    b.HasIndex("PerformedById");
-
-                    b.ToTable("ExternalTransactions");
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.FinancialAccount", b =>
@@ -978,23 +850,6 @@ namespace RentalManagement.Migrations
                     b.Navigation("Property");
                 });
 
-            modelBuilder.Entity("RentalManagement.Entities.AssetTransaction", b =>
-                {
-                    b.HasOne("RentalManagement.Entities.Asset", "Asset")
-                        .WithMany("Transactions")
-                        .HasForeignKey("AssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RentalManagement.Entities.ApplicationUser", "PerformedBy")
-                        .WithMany()
-                        .HasForeignKey("PerformedById");
-
-                    b.Navigation("Asset");
-
-                    b.Navigation("PerformedBy");
-                });
-
             modelBuilder.Entity("RentalManagement.Entities.EarningsHistory", b =>
                 {
                     b.HasOne("RentalManagement.Entities.EmployeeFinancialAccount", "EmployeeFinancialAccount")
@@ -1044,23 +899,6 @@ namespace RentalManagement.Migrations
                     b.Navigation("EmployeeFinancialAccount");
 
                     b.Navigation("FinancialAccount");
-
-                    b.Navigation("PerformedBy");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.ExternalTransaction", b =>
-                {
-                    b.HasOne("RentalManagement.Entities.ExternalAccount", "ExternalAccount")
-                        .WithMany("Transactions")
-                        .HasForeignKey("ExternalAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RentalManagement.Entities.ApplicationUser", "PerformedBy")
-                        .WithMany()
-                        .HasForeignKey("PerformedById");
-
-                    b.Navigation("ExternalAccount");
 
                     b.Navigation("PerformedBy");
                 });
@@ -1175,16 +1013,6 @@ namespace RentalManagement.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("RentalSales");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.Asset", b =>
-                {
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("RentalManagement.Entities.ExternalAccount", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("RentalManagement.Entities.Owner", b =>

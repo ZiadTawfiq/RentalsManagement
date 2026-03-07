@@ -141,25 +141,6 @@ export default function EmployeeAccounts() {
                                     <IoSwapHorizontalOutline size={20} />
                                 </button>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-2xl">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Salary</p>
-                                    <p className="text-lg font-black text-gray-900">${account.salary.toLocaleString()}</p>
-                                </div>
-                                <div className="p-4 bg-emerald-50/50 rounded-2xl">
-                                    <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Commission</p>
-                                    <p className="text-lg font-black text-emerald-600">${account.commissionBalance.toLocaleString()}</p>
-                                </div>
-                                <div className="p-4 bg-blue-50/50 rounded-2xl">
-                                    <p className="text-[10px] font-black text-blue-600/60 uppercase tracking-widest mb-1">Bonus</p>
-                                    <p className="text-lg font-black text-blue-600">${account.bonusBalance.toLocaleString()}</p>
-                                </div>
-                                <div className="p-4 bg-amber-50/50 rounded-2xl">
-                                    <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-widest mb-1">Loan</p>
-                                    <p className="text-lg font-black text-amber-600">${account.loanBalance.toLocaleString()}</p>
-                                </div>
-                            </div>
                         </div>
                     </motion.div>
                 ))}

@@ -15,6 +15,8 @@ import SalesRepRentals from './pages/SalesRepRentals';
 import MyCommission from './pages/MyCommission';
 import EmployeeAccounts from './pages/EmployeeAccounts';
 import EmployeeFinancialProfile from './pages/EmployeeFinancialProfile';
+import Inventory from './pages/Inventory';
+import ExternalAccounts from './pages/ExternalAccounts';
 
 import { useEffect } from 'react';
 
@@ -45,9 +47,12 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/employee-accounts" element={<EmployeeAccounts />} />
             <Route path="/employee-profile/:id" element={<EmployeeFinancialProfile />} />
+            <Route path="/employee-commission/:accountId" element={<MyCommission />} />
             <Route path="/commission" element={<Commission />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/accounts" element={<FinancialAccounts />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/external-accounts" element={<ExternalAccounts />} />
           </Route>
         </Route>
       </Routes>

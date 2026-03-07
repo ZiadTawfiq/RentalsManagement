@@ -5,7 +5,7 @@ import {
     IoGridOutline, IoBusinessOutline, IoKeyOutline, IoPersonOutline,
     IoReceiptOutline, IoPeopleOutline, IoStatsChartOutline, IoMegaphoneOutline,
     IoLogOutOutline, IoMenuOutline, IoChevronBackOutline, IoWalletOutline,
-    IoCashOutline
+    IoCashOutline, IoCubeOutline
 } from 'react-icons/io5';
 import logo from '../assets/logo.png';
 import { getAuthData } from '../utils/auth';
@@ -26,8 +26,11 @@ export default function Layout() {
         { path: '/rentals', label: 'Rentals', icon: <IoReceiptOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
         { path: '/employees', label: 'Team', icon: <IoPeopleOutline />, category: 'Management', roles: ['Admin'] },
         { path: '/employee-accounts', label: 'Employee Accounts', icon: <IoWalletOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
+        { path: '/commission', label: 'Commission', icon: <IoStatsChartOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
         { path: '/campaigns', label: 'Campaigns', icon: <IoMegaphoneOutline />, category: 'Admin', roles: ['Admin'] },
         { path: '/accounts', label: 'Financial Accounts', icon: <IoCashOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
+        { path: '/external-accounts', label: 'External Accounts', icon: <IoBusinessOutline />, category: 'Finance', roles: ['Admin', 'Accountant'] },
+        { path: '/inventory', label: 'Inventory', icon: <IoCubeOutline />, category: 'Management', roles: ['Admin', 'Accountant', 'DataEntry'] },
     ];
 
     const visibleNavItems = navItems.filter(item => {
